@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign Up — PolyTask</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script>window.APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';</script>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
+    <script type="module" src="../script.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h1>Create account</h1>
+        <form id="signupForm" action="#" method="post" novalidate>
+            <div class="input-wrapper">
+                <input id="fullName" name="fullName" type="text" autocomplete="name" required placeholder=" " />
+                <label for="fullName">Full name</label>
+            </div>
+
+            <div class="input-wrapper">
+                <input id="email" name="email" type="email" autocomplete="email" required placeholder=" " />
+                <label for="email">Email address</label>
+            </div>
+
+            <div class="input-wrapper">
+                <input id="password" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder=" " />
+                <label for="password">Password</label>
+                <button type="button" class="icon-btn toggle-btn" data-toggle="password">Show</button>
+            </div>
+
+            <div class="input-wrapper">
+                <input id="confirmPassword" name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder=" " />
+                <label for="confirmPassword">Confirm password</label>
+                <button type="button" class="icon-btn toggle-btn" data-toggle="confirmPassword">Show</button>
+            </div>
+
+            <div id="pwMismatch" class="error" style="display:none;">Passwords do not match.</div>
+
+            <div class="row" style="margin-top:.5rem;">
+                <label class="checkbox">
+                    <input id="terms" type="checkbox" />
+                    <span class="checkbox-custom" aria-hidden="true"></span>
+                    <span>I agree to the terms</span>
+                </label>
+            </div>
+
+            <button id="submitBtn" type="submit" disabled>Sign up</button>
+        </form>
+    </div>
+
+</body>
+<footer>
+    <p>2025 PolyTask. Made with &#10084; by Neal Sharma</p>
+    <i class="fab fa-github"></i>
+</footer>
+</html>

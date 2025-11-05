@@ -1,0 +1,426 @@
+:root {
+    --radius: 15px;
+    /* Palette (from comment) */
+    --coral: #EF6F6C;   /* Coral Red */
+    --dark-slate: #465775; /* Dark Slate Blue */
+    --sandy: #F7B074;   /* Sandy Orange */
+    --maize: #FFF07C;   /* Maize (warning) */
+    --celadon: #ACDD91; /* Celadon Green (success) */
+    --mint: #59C9A5;    /* Mint (accent) */
+    --dark-cyan: #50908D; /* Info */
+    --violet: #715D73;   /* Violet accent */
+    --rose: #9B6371;     /* Rose taupe */
+    --cadet: #93A8AC;    /* Muted / gray */
+
+    /* Semantic variables used in the site */
+    --radius-medium: 0.75rem;
+    --spacing-sm: 0.5rem;
+    --primary: var(--dark-slate);
+    --accent: var(--coral);
+    --accent-2: var(--sandy);
+    --accent-3: var(--mint);
+    --success: var(--celadon);
+    --warning: var(--maize);
+    --info: var(--dark-cyan);
+    --muted: var(--cadet);
+    --bg: #f7f8fb; /* slightly lighter page bg */
+    --card-bg: #ffffff;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: var(--bg);
+}
+/* Card / centered container used by login/signup pages */
+.card {
+    width: 360px;
+    max-width: calc(100% - 2rem);
+    margin: 3.5rem auto;
+    background: var(--card-bg);
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius);
+    box-shadow: 0 6px 20px rgba(16,24,40,0.08);
+    color: #101828;
+}
+.card { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+.lead {
+    color: var(--muted);
+    margin: 0 0 1rem;
+}
+
+/* Hero section on the homepage */
+.hero {
+    padding: 3.5rem 1rem;
+    text-align: center;
+    background: transparent;
+}
+.hero .hero-content { max-width: 880px; margin: 0 auto; }
+.hero h1 { font-size: 2.25rem; margin-bottom: 0.25rem; color: var(--violet); }
+.hero .lead { font-size: 1.05rem; color: var(--muted); margin-bottom: 1.25rem; }
+
+.cta-row { display:flex; gap:0.75rem; justify-content:center; align-items:center; margin-top:1rem; }
+.btn-outline { background: transparent; color: var(--primary); border: 1px solid color-mix(in srgb, var(--primary) 12%, black 2%); font-weight:600 }
+
+.features.card { margin: 1.5rem auto; padding: 1.25rem; }
+.features-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-top:1rem; }
+.feature { padding:0.75rem; background: #fbfbfe; border-radius:0.6rem; border: 1px solid rgba(16,24,40,0.03); }
+.feature h3 { margin:0 0 0.5rem; color: var(--dark-slate); }
+.feature p { margin:0; color: var(--muted); font-size:0.95rem }
+
+/* Floating label input wrapper */
+.input-wrapper {
+    position: relative;
+    margin: 0.75rem 0 1rem;
+}
+.input-wrapper input {
+    width: 100%;
+    height: 48px; /* fixed height to allow consistent vertical centering */
+    line-height: 48px; /* vertically center single-line text */
+    padding: 0 0.9rem; /* left/right padding only; vertical centering handled by line-height */
+    border: 1px solid #e6e6e6;
+    border-radius: 0.6rem;
+    background: var(--card-bg);
+    font-size: 1rem;
+    outline: none;
+    transition: box-shadow .12s ease, border-color .12s ease, padding .12s ease;
+    /* ensure padding doesn't cause overflow inside narrow containers (modal) */
+    box-sizing: border-box;
+    max-width: 100%;
+}
+.input-wrapper input::placeholder { color: transparent; }
+.input-wrapper label {
+    position: absolute;
+    left: 0.95rem;
+    top: 20%; /* sit slightly above center when blurred */
+    transform: translateY(-50%);
+    transform-origin: left center;
+    color: var(--muted);
+    background: transparent;
+    padding: 0 0.25rem;
+    pointer-events: none;
+    transition: transform .16s ease, top .16s ease, color .16s ease, font-size .16s ease;
+}
+.input-wrapper input:focus + label,
+.input-wrapper input:not(:placeholder-shown) + label {
+    /* move label further up so it clears the input center — increased offset */
+    top: -1.2rem;
+    transform: translateY(0) scale(0.82);
+    color: var(--primary);
+    background: var(--card-bg);
+    padding: 0 0.35rem;
+    font-size: 0.82rem;
+}
+
+/* input focus visual */
+.input-wrapper input:focus {
+    border-color: color-mix(in srgb, var(--info) 85%, black 5%);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 6%, transparent 94%);
+}
+
+/* Center text when the field is not active, align left when editing */
+.input-wrapper input:not(:focus) {
+    text-align: center;
+}
+.input-wrapper input:focus {
+    text-align: left;
+}
+#createTaskBtn{
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    font-weight: 700;
+    /* square button: small corner radius for a subtle look */
+    border-radius: 0.6rem;
+    box-shadow: 0 6px 18px rgba(16,24,40,0.1);
+    background: none;
+    background-color: var(--celadon);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
+    position: fixed;
+    right: 18px;
+    bottom: 28px;
+    /* ensure perfect centering for the + glyph */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;            /* remove extra internal padding that can nudge content */
+    line-height: 1;        /* avoid font metrics shifting vertical centering */
+    text-align: center;
+}
+
+/* make svg inside the create button a reliable size and ensure it follows the button color */
+#createTaskBtn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    pointer-events: none;
+    color: white; /* fallback; uses currentColor in svg path */
+}
+#createTaskBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px rgba(16,24,40,0.15);
+    background-color: #7faf66; /* slightly darker celadon on hover */
+}
+
+/* Make inputs inside .card ignore the older generic input rules below */
+.card input[type="text"],
+.card input[type="email"],
+.card input[type="password"] {
+    width: 100%;
+    height: 48px;
+    line-height: 48px;
+    padding: 0 0.9rem;
+    font-size: 1rem;
+    margin: 0;
+    border-radius: 0.6rem;
+    box-sizing: border-box;
+}
+
+/* small pill-style icon/button used for toggles (show/hide password) */
+.icon-btn {
+    background: rgba(16,24,40,0.03);
+    border: 1px solid rgba(16,24,40,0.06);
+    color: var(--muted);
+    padding: 0.22rem 0.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    min-width: 44px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .12s ease, color .12s ease, transform .08s ease, border-color .12s ease;
+}
+.icon-btn:hover {
+    background: rgba(16,24,40,0.06);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+.icon-btn:focus { outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent 82%); outline-offset: 2px; }
+.icon-btn[aria-pressed="true"] {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* toggle button placed inside the input area on the right */
+.input-wrapper { position: relative; }
+.toggle-btn {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    background: rgba(16,24,40,0.03);
+    border: 1px solid rgba(16,24,40,0.06);
+    padding: 0.18rem 0.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-radius: 999px;
+    cursor: pointer;
+}
+.toggle-btn:hover { background: rgba(16,24,40,0.06); color: var(--primary); transform: translateY(-1px); }
+.toggle-btn[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
+.input-wrapper input { padding-right: 3.1rem; }
+.input-wrapper input:not(:focus) { vertical-align: middle; }
+
+/* Shared base for all button-like elements to keep a consistent rhythm */
+.btn, .btn-outline, .icon-btn, .toggle-btn, .nav-day-btn, #createTaskBtn, button:not(.btn):not(.icon-btn):not(.btn-outline):not(.toggle-btn) {
+    font-family: inherit;
+    font-weight: 700;
+    border-radius: 0.6rem;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    line-height: 1;
+    border: none;
+}
+
+/* Primary filled button (keeps full-width behavior for form CTAs) */
+.btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(16,24,40,0.10); }
+
+/* Day navigation buttons (Prev/Next) — give them unique colors and a compact shape */
+.nav-day-btn {
+    padding: 0.5rem 0.85rem;
+    min-width: 88px;
+    font-size: 0.95rem;
+    border-radius: 0.6rem;
+    color: white;
+    box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+}
+.nav-day-btn.prev { background: var(--mint); }
+.nav-day-btn.next { background: var(--mint); }
+.nav-day-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(16,24,40,0.12); }
+.nav-day-btn:focus { outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent 82%); outline-offset: 2px; }
+
+/* Navigation row: make prev/date/next span the full width of the container
+   Prev and Next sit at the edges, date takes remaining space and is centered. */
+.nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+}
+.nav-row #currentDateDisplay {
+    flex: 1 1 auto;
+    text-align: center;
+    font-weight: 600;
+}
+.nav-row .nav-day-btn {
+    flex: 0 0 auto;
+}
+
+.helper { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+.muted-link { color: var(--violet); text-decoration: none; font-weight:600 }
+.muted-link:hover { text-decoration: underline; color: var(--dark-slate); }
+.row { display:flex; justify-content:space-between; align-items:center; }
+.checkbox { display:flex; align-items:center; gap:0.5rem; }
+.checkbox input { /* keep native input for accessibility but visually hide it while keeping it interactive */
+    position: absolute;
+    left: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.checkbox { position: relative; display:flex; align-items:center; gap:0.5rem; }
+.checkbox-custom {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 0.35rem;
+    border: 1px solid #d0d5db;
+    background: white;
+    display: inline-grid;
+    place-items: center;
+    transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+.checkbox input:checked + .checkbox-custom {
+    background: var(--success);
+    border-color: color-mix(in srgb, var(--success) 80%, black 5%);
+}
+.checkbox input:checked + .checkbox-custom::after {
+    content: '✓';
+    color: white;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+.error { color: #b00020; font-size:0.95rem; margin-top:0.5rem; }
+/*footer {
+    background-color: #465775;
+    color: azure;
+    text-align: center;
+    padding: 10px 0;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    z-index: 1000;
+}*/
+/* Use a column flex layout so the footer sits at the bottom when content is short,
+    but remains in the normal flow (not fixed/sticky) so users can scroll away. */
+footer {
+    background: var(--primary);
+    color: white;
+    text-align: center;
+    padding: 22px 0;
+    width: 100%;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+h1{
+    color: var(--violet);
+    text-align: center;
+    margin-top: 20px;
+    font-weight: 700;
+}
+/* Generic page buttons — avoid overriding component buttons like .btn, .icon-btn, .btn-outline */
+button:not(.btn):not(.icon-btn):not(.btn-outline):not(.toggle-btn) {
+    display: block;
+    margin: 20px auto;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 0.6rem;
+}
+button:not(.btn):not(.icon-btn):not(.btn-outline):not(.toggle-btn):hover { filter: brightness(.95); transform: translateY(-1px); }
+label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: bold;
+    align-content: center;
+}
+/* Removed broad input styling that conflicted with .input-wrapper and .card input rules. */
+section {
+    max-width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+    /*background-color: white;*/
+    border-radius: var(--radius);
+}
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+/* Larger card used by the calendar page so the calendar can fill ~80% of the viewport */
+.card.calendar-large {
+    width: 80vw;          /* target 80% of the viewport width */
+    max-width: 1200px;    /* don't get absurdly wide on very large screens */
+    margin: 2rem auto;    /* center and give vertical spacing */
+    box-sizing: border-box; /* include padding in width */
+}
+
+/* Ensure calendar grid occupies full width of its container */
+.card.calendar-large .calendar-grid { width: 100%; }
+
+/* Make any .card that is rendered inside the calendar grid stretch to the full grid width
+   (the renderer creates a nested .card element; default .card width is narrow, so override it here) */
+.card.calendar-large .calendar-grid > .calendar-inner {
+    width: 100%;
+    margin: 0 0 1rem 0; /* keep a small vertical gap but remove horizontal centering margin */
+    box-sizing: border-box;
+    background: transparent; /* remove inner card background so it sits inside the outer card */
+    box-shadow: none;        /* remove inner shadow */
+    padding: 0;              /* outer card handles padding */
+}
+
+/* Visual helpers for the calendar-inner header and spacing */
+.calendar-inner > div:first-child { margin-bottom: 8px; }
+
+/* Day view grid: left time column + right events column */
+.day-grid { display: flex; gap: 12px; align-items: flex-start; }
+.day-grid .time-column { width: 72px; flex: 0 0 72px; border-right: 1px solid rgba(16,24,40,0.06); box-sizing: border-box; padding-right: 10px; }
+.day-grid .time-slot { height: 48px; display:flex; align-items:center; font-size:0.875rem; color:var(--muted); padding-left:6px; }
+.day-grid .events-column { flex: 1 1 auto; min-width: 0; padding-left: 12px; }
+.day-grid .events-column .event-card { padding: 12px; margin-bottom: 8px; background: var(--card-bg); border-radius: 6px; box-sizing: border-box; width: 100%; }
+
+/* Responsive: stack time column above events on small screens to avoid cramped text */
+@media (max-width: 640px) {
+    .day-grid { flex-direction: column; }
+    .day-grid .time-column { width: 100%; flex: 0 0 auto; border-right: none; border-bottom: 1px solid rgba(16,24,40,0.04); padding-right: 0; padding-bottom: 6px; }
+    .day-grid .time-slot { height: 40px; }
+    .day-grid .events-column { padding-left: 0; }
+}
+.day-grid .events-column .empty { opacity: .6; padding: 8px 0; }

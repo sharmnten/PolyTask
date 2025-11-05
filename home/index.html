@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PolyTask — Calendar</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>window.APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';</script>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
+  <script type="module" src="../script.js"></script>
+</head>
+<body>
+  <main class="card calendar-large">
+      <h1>My Tasks — Day view</h1>
+      <div class="nav-row">
+        <button id="prevDay" class="btn-outline nav-day-btn prev">Prev day</button>
+        <div id="currentDateDisplay"></div>
+        <button id="nextDay" class="btn-outline nav-day-btn next">Next day</button>
+      </div>
+    
+
+  <div id="calendar" class="calendar-grid" aria-live="polite"></div>
+
+  <!-- floating create button (use inline SVG for consistent centering) -->
+  <button id="createTaskBtn" title="Create task" class="icon-btn" aria-label="Create task">
+    <!-- plus SVG -->
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+      <path d="M11 11V5a1 1 0 1 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6z" fill="currentColor" />
+    </svg>
+  </button>
+
+    <!-- creation modal -->
+    <div id="taskModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);">
+      <div class="card" style="width:360px;">
+        <h2>Create task</h2>
+        <form id="taskCreateForm">
+          <div class="input-wrapper">
+            <input id="taskTitle" name="name" type="text" required placeholder=" " />
+            <label for="taskTitle">Title</label>
+          </div>
+          <div class="input-wrapper">
+            <input id="taskDueDate" name="due" type="date" required placeholder=" " />
+            <label for="taskDueDate">Due Date</label>
+          </div>
+          <div class="input-wrapper">
+            <input id="taskEstimateMinutes" name="estimateMinutes" type="number" min="1" step="1" placeholder=" " />
+            <label for="taskEstimateMinutes">Estimated time (minutes)</label>
+          </div>
+          <div class="input-wrapper">
+            <input id="taskCategory" name="category" type="text" maxlength="20" placeholder=" " />
+            <label for="taskCategory">Category (optional)</label>
+          </div>
+          <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:8px;">
+            <button type="button" id="cancelTask" class="btn-outline">Cancel</button>
+            <button type="submit" class="btn">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+</body>
+</html>

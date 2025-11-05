@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign in — PolyTask</title>
+    <link rel="stylesheet" href="../styles.css">
+        <script>window.APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';</script>
+        <script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
+        <script type="module" src="../script.js"></script>
+</head>
+<body>
+    <main class="card" role="main" aria-labelledby="signin-heading">
+        <h1 id="signin-heading">Sign in to PolyTask</h1>
+        <p class="lead">Welcome back — enter your details to continue.</p>
+
+        <form id="loginForm" action="/login" method="post" novalidate>
+            <div class="input-wrapper">
+                <input id="email" name="email" type="email" autocomplete="email" required placeholder=" " inputmode="email" aria-describedby="emailHelp" />
+                <label for="email">Email address</label>
+                <div id="emailHelp" class="helper" aria-hidden="true">We'll never share your email.</div>
+            </div>
+
+            <div class="input-wrapper">
+                <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder=" " aria-describedby="passwordHelp" />
+                <label for="password">Password</label>
+                <button type="button" id="togglePassword" class="icon-btn toggle-btn" aria-pressed="false" title="Show password">Show</button>
+                <div id="passwordHelp" class="helper">Minimum 8 characters.</div>
+            </div>
+
+            <div class="row" style="margin-top:.25rem;">
+                <label class="checkbox">
+                    <input type="checkbox" id="remember" name="remember" />
+                    <span class="checkbox-custom" aria-hidden="true"></span>
+                    <span>Remember me</span>
+                </label>
+                <a class="muted-link" href="/forgot-password">Forgot password?</a>
+            </div>
+
+            <div>
+                <button class="btn" type="submit">Sign in</button>
+            </div>
+
+            <div style="text-align:center;margin-top:.5rem;font-size:.9rem;color:var(--muted);">
+                New to PolyTask? <a href="/signup" class="muted-link">Create an account</a>
+            </div>
+
+            <div id="formError" class="error" role="alert" aria-live="assertive" style="display:none;"></div>
+        </form>
+    </main>
+</body>
+<footer>
+    <p>2025 PolyTask. Made with &#10084; by Neal Sharma</p>
+    <i class="fab fa-github"></i>
+</footer>
+</html>
