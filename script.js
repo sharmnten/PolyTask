@@ -1309,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 
 		// expose a couple helpers for tests
-		return { init, createUserTask, listUserTasks, getCurrentUserId, deleteUserTask, updateUserTask };
+		return { init, createUserTask, listUserTasks, getCurrentUserId, deleteUserTask, updateUserTask, autoSchedule };
 	})();
 
 		// expose globally for modal helpers and tests
