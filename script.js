@@ -771,6 +771,115 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		}
 
+		// --- auto scheduler ------------------------------------------------
+		async function autoSchedule() {
+			try {
+				const userId = await getCurrentUserId();
+				if (!userId) return;
+
+				// 1. Get all tasks
+				const allTasks = await listUserTasks();
+				
+				const currentDayStr = formatDateISO(currentDay);
+				const startOfCurrentDay = new Date(currentDay); startOfCurrentDay.setHours(0,0,0,0);
+				const endOfCurrentDay = new Date(currentDay); endOfCurrentDay.setHours(23,59,59,999);
+
+				// Fixed tasks: assigned within current day
+				const fixedTasks = allTasks.filter(t => {
+					if (!t.assigned) return false;
+					const d = new Date(t.assigned);
+					return d >= startOfCurrentDay && d <= endOfCurrentDay;
+				});
+
+				// Floating tasks: not assigned, but due today (or overdue?), and not completed
+				const floatingTasks = allTasks.filter(t => {
+					if (t.assigned || t.complete) return false;
+					// Schedule tasks due today
+					if (!t.due) return false;
+					const due = new Date(t.due);
+					return due.toISOString().slice(0,10) === currentDayStr;
+				});
+
+				if (floatingTasks.length === 0) {
+					alert('No unassigned tasks due today.');
+					return;
+				}
+
+				// Sort floating tasks by estimated time descending (fit big rocks first)
+				floatingTasks.sort((a, b) => {
+					const estA = typeof a.estimated_time === 'number' ? a.estimated_time : (typeof a.estimateMinutes === 'number' ? a.estimateMinutes : 60);
+					const estB = typeof b.estimated_time === 'number' ? b.estimated_time : (typeof b.estimateMinutes === 'number' ? b.estimateMinutes : 60);
+					return estB - estA;
+				});
+
+				// 3. Build a map of occupied minutes (06:00 to 24:00)
+				const occupied = new Uint8Array(24 * 60); // 0 to 1439 minutes
+				// Mark hours 0-6 as occupied
+				for (let i = 0; i < 6 * 60; i++) occupied[i] = 1;
+
+				fixedTasks.forEach(t => {
+					const d = new Date(t.assigned);
+					const startMin = d.getHours() * 60 + d.getMinutes();
+					const duration = typeof t.estimated_time === 'number' ? t.estimated_time : (typeof t.estimateMinutes === 'number' ? t.estimateMinutes : 60);
+					for (let i = startMin; i < startMin + duration && i < 1440; i++) {
+						occupied[i] = 1;
+					}
+				});
+
+				// 4. Try to fit floating tasks
+				let scheduledCount = 0;
+				for (const task of floatingTasks) {
+					const duration = typeof task.estimated_time === 'number' ? task.estimated_time : (typeof task.estimateMinutes === 'number' ? task.estimateMinutes : 60);
+					// Find a gap of 'duration' minutes
+					let bestStart = -1;
+					
+					// Simple greedy search: find first gap that fits
+					let currentGapStart = -1;
+					let currentGapLen = 0;
+					
+					for (let i = 6 * 60; i < 24 * 60; i++) {
+						if (occupied[i] === 0) {
+							if (currentGapStart === -1) currentGapStart = i;
+							currentGapLen++;
+							if (currentGapLen >= duration) {
+								bestStart = currentGapStart;
+								break;
+							}
+						} else {
+							currentGapStart = -1;
+							currentGapLen = 0;
+						}
+					}
+
+					if (bestStart !== -1) {
+						// Found a slot!
+						// Mark as occupied
+						for (let i = bestStart; i < bestStart + duration; i++) occupied[i] = 1;
+						
+						// Update task
+						const newAssigned = new Date(currentDay);
+						newAssigned.setHours(Math.floor(bestStart / 60), bestStart % 60, 0, 0);
+						
+						await updateUserTask(task.$id, {
+							assigned: newAssigned.toISOString()
+						});
+						scheduledCount++;
+					}
+				}
+
+				if (scheduledCount > 0) {
+					await loadAndRender();
+					alert(`Auto-scheduled ${scheduledCount} tasks.`);
+				} else {
+					alert('Could not find free slots for any tasks.');
+				}
+
+			} catch (err) {
+				console.error('Auto-schedule error', err);
+				alert('Auto-schedule failed: ' + err.message);
+			}
+		}
+
 		// --- calendar rendering --------------------------------------------
 		function startOfDay(date) { const d = new Date(date); d.setHours(0,0,0,0); return d; }
 		function formatDateISO(d) { return d.toISOString().slice(0,10); }
