@@ -1,5 +1,11 @@
 // Import Transformers.js for semantic categorization
-import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
+
+// Skip local model checks since we are running in a browser environment
+env.allowLocalModels = false;
+env.useBrowserCache = true;
+
+let extractor = null;
 
 // script expects Appwrite UMD to be loaded via a <script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -535,21 +541,23 @@ document.addEventListener('DOMContentLoaded', () => {
 				});
 				const allDocs = listResult.called ? listResult.value.documents : (await db.listDocuments(APPWRITE_DATABASE, userId)).documents;
 				
-				// Filter tasks that need categorization (null category)
+				// Filter tasks that need categorization (null category OR 'General')
 				// Skip "Blocked" tasks - they should never be auto-categorized
 				const uncategorized = allDocs.filter(d => {
 					const isBlocked = String(d.name || '').toLowerCase().includes('blocked') || 
 					                  String(d.category || '').toLowerCase() === 'blocked';
-					const needsCategorization = !d.category || d.category === null;
+					const needsCategorization = !d.category || d.category === null || d.category === 'General';
 					return needsCategorization && !isBlocked;
 				});
 				if (uncategorized.length === 0) return;
 				
-				// Build knowledge base from categorized tasks (exclude Blocked)
-				const categorized = allDocs.filter(d => d.category && d.category !== 'Blocked');
+				// Build knowledge base from categorized tasks (exclude Blocked and General)
+				const categorized = allDocs.filter(d => d.category && d.category !== 'Blocked' && d.category !== 'General');
 				
 				// Initialize ML model
-				const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+				if (!extractor) {
+					extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+				}
 				
 				// Helper functions
 				const normalize = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -590,8 +598,13 @@ document.addEventListener('DOMContentLoaded', () => {
 				
 				async function embed(text) {
 					const out = await extractor(text, { pooling: 'mean', normalize: true });
-					if (Array.isArray(out)) return mean(out[0]);
-					return out.data ? out.data : out;
+					if (out.data) return out.data;
+					if (Array.isArray(out) && out.length > 0) {
+						if (out[0].data) return out[0].data;
+						if (Array.isArray(out[0])) return out[0]; // Should not happen with pooling
+						return out;
+					}
+					return out;
 				}
 				
 				// Build parent category registry and color mapping
@@ -745,6 +758,9 @@ document.addEventListener('DOMContentLoaded', () => {
 					}
 					
 					// Update the task
+					// Skip update if nothing changed (e.g. General -> General)
+					if (task.category === finalCategory && task.color === finalColor) continue;
+
 					const updatePayload = {
 						...task,
 						category: finalCategory,
@@ -791,22 +807,31 @@ document.addEventListener('DOMContentLoaded', () => {
 					return d >= startOfCurrentDay && d <= endOfCurrentDay;
 				});
 
-				// Floating tasks: not assigned, but due today (or overdue?), and not completed
+				// Floating tasks: not assigned, but due today OR in the future, and not completed
+				// "Don't put stuff on the last day" -> Try to schedule future tasks today if possible
 				const floatingTasks = allTasks.filter(t => {
 					if (t.assigned || t.complete) return false;
-					// Schedule tasks due today
 					if (!t.due) return false;
 					const due = new Date(t.due);
-					return due.toISOString().slice(0,10) === currentDayStr;
+					// Include tasks due today or later
+					// (We compare date strings to ignore time components for the "due date" check)
+					return due.toISOString().slice(0,10) >= currentDayStr;
 				});
 
 				if (floatingTasks.length === 0) {
-					alert('No unassigned tasks due today.');
+					// Silent return if running automatically
+					console.log('No unassigned tasks to schedule.');
 					return;
 				}
 
-				// Sort floating tasks by estimated time descending (fit big rocks first)
+				// Sort floating tasks:
+				// 1. Due date ascending (earliest deadline first)
+				// 2. Estimated time descending (fit big rocks first)
 				floatingTasks.sort((a, b) => {
+					const dueA = new Date(a.due).getTime();
+					const dueB = new Date(b.due).getTime();
+					if (dueA !== dueB) return dueA - dueB;
+					
 					const estA = typeof a.estimated_time === 'number' ? a.estimated_time : (typeof a.estimateMinutes === 'number' ? a.estimateMinutes : 60);
 					const estB = typeof b.estimated_time === 'number' ? b.estimated_time : (typeof b.estimateMinutes === 'number' ? b.estimateMinutes : 60);
 					return estB - estA;
@@ -869,9 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 				if (scheduledCount > 0) {
 					await loadAndRender();
-					alert(`Auto-scheduled ${scheduledCount} tasks.`);
+					console.log(`Auto-scheduled ${scheduledCount} tasks.`);
 				} else {
-					alert('Could not find free slots for any tasks.');
+					console.log('Could not find free slots for any tasks.');
 				}
 
 			} catch (err) {
@@ -1385,6 +1410,8 @@ document.addEventListener('DOMContentLoaded', () => {
 					await loadAndRender(); 
 					// Trigger categorization of uncategorized tasks
 					await categorizeTasks();
+					// Trigger auto-scheduler to fit new task if possible
+					await autoSchedule();
 				} catch (err) { 
 					console.error('create task error',err); 
 					alert(err.message || 'Could not create task'); 
