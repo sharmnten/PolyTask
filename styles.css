@@ -32,6 +32,7 @@ body {
     padding: 0;
     box-sizing: border-box;
     background-color: var(--bg);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 /* Card / centered container used by login/signup pages */
 .card {
@@ -44,7 +45,7 @@ body {
     box-shadow: 0 6px 20px rgba(16,24,40,0.08);
     color: #101828;
 }
-.card { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+/* .card { font-family: ... } removed - moved to body */
 .lead {
     color: var(--muted);
     margin: 0 0 1rem;
@@ -74,7 +75,8 @@ body {
     position: relative;
     margin: 0.75rem 0 1rem;
 }
-.input-wrapper input {
+.input-wrapper input,
+.input-wrapper select {
     width: 100%;
     height: 48px; /* fixed height to allow consistent vertical centering */
     line-height: 48px; /* vertically center single-line text */
@@ -102,6 +104,7 @@ body {
     pointer-events: none;
     transition: transform .16s ease, top .16s ease, color .16s ease, font-size .16s ease;
 }
+.input-wrapper select + label,
 .input-wrapper input:focus + label,
 .input-wrapper input:not(:placeholder-shown) + label {
     /* move label further up so it clears the input center — increased offset */
@@ -114,7 +117,8 @@ body {
 }
 
 /* input focus visual */
-.input-wrapper input:focus {
+.input-wrapper input:focus,
+.input-wrapper select:focus {
     border-color: color-mix(in srgb, var(--info) 85%, black 5%);
     box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 6%, transparent 94%);
 }
@@ -125,6 +129,13 @@ body {
 }
 .input-wrapper input:focus {
     text-align: left;
+}
+
+/* Select specific overrides to prevent "messed up" layout */
+.input-wrapper select {
+    text-align: left; /* Always left align selects */
+    padding-right: 2rem; /* Make room for arrow if present */
+    cursor: pointer;
 }
 /* Wrapper for the floating action buttons */
 #createTaskBtn-wrapper {
@@ -137,7 +148,24 @@ body {
     /* Ensure the popup can be seen when it moves outside */
     display: flex;
     justify-content: center;
+    transition: bottom 0.2s ease-out; /* animate change in position */
 }
+
+/* Adjust position when above the footer if it gets too close */
+/* We can't detect scroll position with pure CSS easily for this dynamic footer. 
+   Instead, we will add a generous bottom margin to the main content so the scroll ends before the button hits the footer,
+   OR we can use JS to detecting overlap. 
+   Given the constraint, a safer bet here is to just raise the button slightly if we want it to clear, or trust the user wants JS.
+   But user asked to "make sure". Let's update the body/main bottom padding or use JS.
+   
+   Actually, the simplest reliable fix for "don't touch the footer" when the footer is at the bottom of the document
+   is ensuring the main scrollable area has enough padding at the bottom so the content ends, 
+   but the button is `position: fixed`.
+   
+   If the footer is also scrolling into view (not fixed footer), then the fixed button WILL overlap it if we scroll down.
+   To prevent overlap, we need to check footer offset.
+*/
+
 
 /* The schedule/clock button sitting on top */
 #createTaskBtn-popup {
@@ -152,9 +180,10 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all .2s ease-out;
+    transition: all .35s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Smooth spring-like eased transition */
+    transition-delay: 0.05s;
     opacity: 0;
-    transform: translateY(20px); /* Push down to hide behind button */
+    transform: translateY(10px); /* Reduced movement */
     z-index: 0;
     pointer-events: none;
 }
@@ -267,9 +296,9 @@ body {
     border-radius: 999px;
     cursor: pointer;
 }
-.toggle-btn:hover { background: rgba(16,24,40,0.06); color: var(--primary); transform: translateY(-1px); }
+.toggle-btn:hover { background: rgba(16,24,40,0.06); color: var(--primary); transform: translateY(calc(-50% - 1px)); }
 .toggle-btn[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
-.input-wrapper input { padding-right: 3.1rem; }
+.input-wrapper input { padding-right: 4rem; }
 .input-wrapper input:not(:focus) { vertical-align: middle; }
 
 /* Shared base for all button-like elements to keep a consistent rhythm */
@@ -465,11 +494,233 @@ section {
 }
 .day-grid .events-column .event-card { padding: 12px; margin-bottom: 8px; background: var(--card-bg); border-radius: 6px; box-sizing: border-box; width: 100%; }
 
-/* Responsive: stack time column above events on small screens to avoid cramped text */
+/* Responsive: Stack layout for mobile */
 @media (max-width: 640px) {
-    .day-grid { flex-direction: column; }
-    .day-grid .time-column { width: 100%; flex: 0 0 auto; border-right: none; border-bottom: 1px solid rgba(16,24,40,0.04); padding-right: 0; padding-bottom: 6px; }
-    .day-grid .time-slot { height: 40px; }
-    .day-grid .events-column { padding-left: 0; }
+    /* Main container and card padding adjustments */
+    .container, .card.calendar-large {
+        padding: 0.5rem;
+    }
+
+    /* Navigation row: stack buttons */
+    .nav-row {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+    
+    .nav-row button, 
+    .nav-row .nav-day-btn {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        justify-content: center;
+    }
+
+    /* Date display centered */
+    #currentDateDisplay {
+        text-align: center;
+        margin: 0.25rem 0;
+        font-weight: 600;
+    }
+
+    /* Day Grid: Keep side-by-side but compact */
+    .day-grid {
+        display: flex;
+        flex-direction: row;
+    }
+
+    /* Compress time column */
+    .day-grid .time-column {
+        width: 35px; /* Narrower than desktop */
+        flex: 0 0 auto;
+        padding-right: 2px;
+        border-right: 1px solid rgba(16,24,40,0.08);
+    }
+    
+    .day-grid .time-slot {
+        font-size: 0.7rem; /* Smaller font */
+        text-align: right;
+        padding-right: 2px;
+    }
+    
+    /* Events column takes remaining width */
+    .day-grid .events-column {
+        padding-left: 4px; /* Less padding */
+    }
+    
+    /* Event cards roughly same but maybe smaller text */
+    .event-card {
+        padding: 8px !important;
+    }
+    .event-card .title {
+        font-size: 0.85rem;
+    }
+    .event-card .time {
+        font-size: 0.75rem;
+    }
+    
+    /* Hide some details on very small screens if needed, 
+       or just let them wrap */
+    
+    /* Modal adjustments */
+    #taskModal .card {
+        width: 90% !important;
+        max-width: 360px;
+    }
 }
+
+  /* --- Loading Spinner --- */
+  .btn-loading {
+      position: relative;
+      color: transparent !important;
+      pointer-events: none;
+  }
+  .btn-loading:after {
+      content: "";
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 16px; height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s infinite linear;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- Empty State Hint --- */
+  .events-column.has-hint::after {
+      content: "Double-click anywhere to add a task";
+      position: absolute;
+      top: 40%;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: var(--cadet);
+      opacity: 0.2;
+      font-size: 1.5rem;
+      font-weight: 700;
+      pointer-events: none;
+      transform: rotate(-5deg);
+  }
 .day-grid .events-column .empty { opacity: .6; padding: 8px 0; }
+/* --- Toast Notifications --- */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10000;
+}
+.toast {
+    background: white;
+    color: #333;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 250px;
+    max-width: 350px;
+    animation: slideIn 0.3s ease-out forwards;
+    border-left: 4px solid var(--primary);
+    font-size: 0.9rem;
+}
+.toast.success { border-left-color: var(--celadon); }
+.toast.error { border-left-color: var(--coral); }
+.toast.info { border-left-color: var(--dark-cyan); }
+.toast.fade-out { animation: fadeOut 0.3s ease-in forwards; }
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    to { opacity: 0; transform: translateY(10px); }
+}
+
+.event-card.dropping {
+    animation: fadeInDrop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes fadeInDrop {
+    from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.current-time-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--coral);
+    z-index: 5;
+    pointer-events: none;
+}
+.current-time-line::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--coral);
+}
+
+/* --- Drag and Resize --- */
+.event-card {
+    /* cursor: grab; already pointer */
+    transition: box-shadow 0.2s, transform 0.1s;
+    user-select: none;
+    z-index: 10;
+}
+.event-card:active {
+    cursor: grabbing;
+    z-index: 20;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+.event-card.dragging {
+    opacity: 0;
+    box-shadow: none !important;
+    pointer-events: none;
+}
+.event-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+    z-index: 15; /* ensure it pops over others slightly */
+}
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 14px;
+    cursor: ns-resize;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+}
+.resize-handle::after {
+    content: "";
+    width: 4px;
+    height: 4px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    box-shadow: 8px 0 0 rgba(255,255,255,0.5), -8px 0 0 rgba(255,255,255,0.5);
+    transition: all 0.2s ease;
+}
+.resize-handle:hover::after {
+    background: rgba(255,255,255,0.9);
+    box-shadow: 8px 0 0 rgba(255,255,255,0.9), -8px 0 0 rgba(255,255,255,0.9);
+}
+
+
+/* --- Inline Styles Migrated --- */
+.schedule-modal { width: 720px; max-width: calc(100% - 2rem); }
+.edit-event-modal { inset: 0; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); z-index: 110; }
+.edit-event-card { width: 750px; max-width: calc(100% - 2rem); }
+.schedule-actions-wrapper { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; gap: 8px; }

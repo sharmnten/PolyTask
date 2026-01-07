@@ -41,10 +41,17 @@
   </div>
 
     <!-- creation modal -->
-    <div id="taskModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);">
+    <div id="taskModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:2000;">
       <div class="card" style="width:360px;">
         <h2>Create task</h2>
         <form id="taskCreateForm">
+          <!-- Smart Input -->
+          <div class="input-wrapper" style="margin-bottom:1rem;position:relative;">
+            <input id="smartInput" type="text" placeholder=" " autocomplete="off" style="border-color:var(--violet);" />
+            <label for="smartInput" style="color:var(--violet);">✨ Smart Add (e.g. "Gym tomorrow 5pm")</label>
+          </div>
+          <div style="height:1px;background:#e5e7eb;margin-bottom:1rem;"></div>
+
           <div class="input-wrapper">
             <input id="taskTitle" name="name" type="text" required placeholder=" " />
             <label for="taskTitle">Title</label>
@@ -54,8 +61,20 @@
             <label for="taskDueDate">Due Date</label>
           </div>
           <div class="input-wrapper">
+            <input id="taskAssignedTime" name="assignedTime" type="time" placeholder=" " />
+            <label for="taskAssignedTime">Start Time (Optional)</label>
+          </div>
+          <div class="input-wrapper">
             <input id="taskEstimateMinutes" name="estimateMinutes" type="number" min="1" step="1" placeholder=" " />
             <label for="taskEstimateMinutes">Estimated time (minutes)</label>
+          </div>
+          <div class="input-wrapper">
+            <select id="taskPriority" name="priority">
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <label for="taskPriority">Priority</label>
           </div>
           <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:8px;">
             <button type="button" id="cancelTask" class="btn-outline">Cancel</button>
@@ -66,7 +85,7 @@
     </div>
 
     <!-- define schedule modal (same style as task modal) -->
-    <div id="defineScheduleModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:100;">
+    <div id="defineScheduleModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:2010;">
       <div class="card schedule-modal" style="width:720px;max-width:calc(100% - 2rem);">
         <h2>Define Schedule</h2>
         <form id="scheduleForm">
@@ -129,7 +148,7 @@
     </div>
 
     <!-- edit event modal -->
-    <div id="editEventModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:110;">
+    <div id="editEventModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:2020;">
       <div class="card" style="width:750px;max-width:calc(100% - 2rem);">
         <h2>Edit event</h2>
         <form id="editEventForm">
@@ -158,9 +177,19 @@
               <label for="editColor">Color</label>
             </div>
           </div>
-          <div class="input-wrapper">
-            <input id="editCategory" type="text" maxlength="20" placeholder=" " />
-            <label for="editCategory">Category</label>
+          <div class="input-row" style="display:flex;gap:.5rem;">
+            <div class="input-wrapper" style="flex:1;">
+              <select id="editPriority">
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <label for="editPriority">Priority</label>
+            </div>
+            <div class="input-wrapper" style="flex:1;">
+              <input id="editCategory" type="text" maxlength="20" placeholder=" " />
+              <label for="editCategory">Category</label>
+            </div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
             <label style="display:flex;align-items:center;gap:8px;">
