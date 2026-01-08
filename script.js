@@ -601,13 +601,30 @@ document.addEventListener('DOMContentLoaded', () => {
 			const App = AppwriteModule;
 			const db = new App.Databases(client);
 			if (!App.Query || typeof db.listDocuments !== 'function') throw new Error('Appwrite Databases.listDocuments or Query not available');
+			
 			// Use userId as collection ID
-			const modern = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, userId], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId
-			});
-			const res = modern.called ? modern.value : await db.listDocuments(APPWRITE_DATABASE, userId);
-			return (res && res.documents) || [];
+			try {
+				const modern = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, userId], {
+					databaseId: APPWRITE_DATABASE,
+					collectionId: userId
+				});
+				const res = modern.called ? modern.value : await db.listDocuments(APPWRITE_DATABASE, userId);
+				return (res && res.documents) || [];
+			} catch (err) {
+				// If collection missing (404), try to ensure it exists and retry
+				if (err.code === 404 || (err.message && err.message.includes('not be found'))) {
+					console.warn('Collection missing in listUserTasks, attempting to create...');
+					await ensureUserCollection(userId);
+					// Retry once
+					const modern = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, userId], {
+						databaseId: APPWRITE_DATABASE,
+						collectionId: userId
+					});
+					const res = modern.called ? modern.value : await db.listDocuments(APPWRITE_DATABASE, userId);
+					return (res && res.documents) || [];
+				}
+				throw err;
+			}
 		}
 
 		async function createUserTask(data) {
@@ -628,18 +645,36 @@ document.addEventListener('DOMContentLoaded', () => {
 				color: data.color || 'cadet',
 				estimated_time: typeof data.estimated_time === 'number' ? data.estimated_time : (typeof data.estimateMinutes === 'number' ? data.estimateMinutes : 60),
 				complete: data.complete === true ? true : false,
-				repeat: data.repeat || null,
+				repeat: data.repeat === true ? true : false,
 				priority: data.priority || 'medium'
 			};
 			// Use userId as collection ID
-			const created = await invokeWithCompat(db, 'createDocument', [APPWRITE_DATABASE, userId, uniqueId, payload], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				documentId: uniqueId,
-				data: payload
-			});
-			if (created.called) return created.value;
-			return await db.createDocument(APPWRITE_DATABASE, userId, uniqueId, payload);
+			try {
+				const created = await invokeWithCompat(db, 'createDocument', [APPWRITE_DATABASE, userId, uniqueId, payload], {
+					databaseId: APPWRITE_DATABASE,
+					collectionId: userId,
+					documentId: uniqueId,
+					data: payload
+				});
+				if (created.called) return created.value;
+				return await db.createDocument(APPWRITE_DATABASE, userId, uniqueId, payload);
+			} catch (err) {
+				// If collection missing (404), try to ensure it exists and retry
+				if (err.code === 404 || (err.message && err.message.includes('not be found'))) {
+					console.warn('Collection missing in createUserTask, attempting to create...');
+					await ensureUserCollection(userId);
+					// Retry once
+					const created = await invokeWithCompat(db, 'createDocument', [APPWRITE_DATABASE, userId, uniqueId, payload], {
+						databaseId: APPWRITE_DATABASE,
+						collectionId: userId,
+						documentId: uniqueId,
+						data: payload
+					});
+					if (created.called) return created.value;
+					return await db.createDocument(APPWRITE_DATABASE, userId, uniqueId, payload);
+				}
+				throw err;
+			}
 		}
 
 		// Categorize tasks with null categories using semantic ML
