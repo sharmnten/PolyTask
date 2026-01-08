@@ -408,9 +408,9 @@ document.addEventListener('DOMContentLoaded', () => {
 					// Try to ensure new attributes like 'completed' exist
 					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'completed', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'completed', required: false, default: false }); } catch (e) {}
 					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'complete', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'complete', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', false, 1], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: false, min: 1 }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'repeat', 20, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', size: 20, required: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 10, false, 'medium'], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 10, required: false, default: 'medium' }); } catch (e) {}
+					try { await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', true, 0], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: true, min: 0 }); } catch (e) {}
+					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'repeat', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', required: false, default: false }); } catch (e) {}
+					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 20, true], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 20, required: true }); } catch (e) {}
 					return existing.value;
 				}
 				// Try legacy signature
@@ -420,9 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
 					collectionExists = true;
 					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'completed', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'completed', required: false, default: false }); } catch (e) {}
 					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'complete', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'complete', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', false, 1], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: false, min: 1 }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'repeat', 20, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', size: 20, required: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 10, false, 'medium'], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 10, required: false, default: 'medium' }); } catch (e) {}
+					try { await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', true, 0], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: true, min: 0 }); } catch (e) {}
+					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'repeat', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', required: false, default: false }); } catch (e) {}
+					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 20, true], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 20, required: true }); } catch (e) {}
 					return col;
 				}
 			} catch (err) {
@@ -507,14 +507,14 @@ document.addEventListener('DOMContentLoaded', () => {
 				// ignore if already exists or if backend rejects optional bounds signature
 			}
 			
-			// estimated_time (integer, optional, min 1) - matches createUserTask payload
+			// estimated_time (integer, required, min 0) - matches existing schema
 			try {
-				await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', false, 1], {
+				await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', true, 0], {
 					databaseId: APPWRITE_DATABASE,
 					collectionId: userId,
 					key: 'estimated_time',
-					required: false,
-					min: 1
+					required: true,
+					min: 0
 				});
 			} catch (e) { }
 
@@ -540,25 +540,24 @@ document.addEventListener('DOMContentLoaded', () => {
 					default: false
 				});
 			} catch (e) { /* ignore if exists */ }
-			// repeat (string, optional, size 20)
+			// repeat (boolean, optional, default false)
 			try {
-				await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'repeat', 20, false], {
+				await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'repeat', false, false], {
 					databaseId: APPWRITE_DATABASE,
 					collectionId: userId,
 					key: 'repeat',
-					size: 20,
-					required: false
+					required: false,
+					default: false
 				});
 			} catch (e) { /* ignore if exists */ }
-			// priority (string, optional, size 10)
+			// priority (string, required, size 20)
 			try {
-				await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 10, false, 'medium'], {
+				await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 20, true], {
 					databaseId: APPWRITE_DATABASE,
 					collectionId: userId,
 					key: 'priority',
-					size: 10,
-					required: false,
-					default: 'medium'
+					size: 20,
+					required: true
 				});
 			} catch (e) { /* ignore if exists */ }
 			return collection;
@@ -1838,8 +1837,10 @@ document.addEventListener('DOMContentLoaded', () => {
 				e.preventDefault(); showFormError(signupForm,'');
 				const fullName = (document.getElementById('fullName')||{}).value||''; const email = (document.getElementById('email')||{}).value||''; const passwordVal = (document.getElementById('password')||{}).value||''; const confirmVal = (document.getElementById('confirmPassword')||{}).value||''; const termsChecked = !!(document.getElementById('terms')||{}).checked;
 				if (!email || !passwordVal || !confirmVal) return showFormError(signupForm,'Please complete all fields.'); if (passwordVal !== confirmVal) return showFormError(signupForm,'Passwords do not match.'); if (!termsChecked) return showFormError(signupForm,'You must accept the terms.');
+				
+				let client, App, account;
 				try {
-					const client = await ensureAppwriteClient(); const App = AppwriteModule; const account = new App.Account(client);
+					client = await ensureAppwriteClient(); App = AppwriteModule; account = new App.Account(client);
 					const desiredId = App.ID && typeof App.ID.unique === 'function' ? App.ID.unique() : 'unique()';
 					let created = await invokeWithCompat(account, 'create', [desiredId, email, passwordVal, fullName], {
 						userId: desiredId,
@@ -1855,19 +1856,40 @@ document.addEventListener('DOMContentLoaded', () => {
 						});
 					}
 					if (!created.called) throw new Error('Account create not available');
-					const session = await invokeWithCompat(account, 'createEmailPasswordSession', [email, passwordVal], { email, password: passwordVal });
-					if (!session.called) {
+				} catch (createErr) {
+					// Check if user already exists
+					if (createErr.code === 409 || (createErr.message && (createErr.message.includes('already exists') || createErr.type === 'user_already_exists'))) {
+						console.log('User already exists, attempting to log in...');
+						// Fall through to login logic below
+					} else {
+						// Other error, rethrow
+						throw createErr;
+					}
+				}
+
+				// Login and Setup (Shared for new and existing users)
+				try {
+					let sessionResult = await invokeWithCompat(account, 'createEmailPasswordSession', [email, passwordVal], { email, password: passwordVal });
+					let sessionData = sessionResult.called ? sessionResult.value : null;
+
+					if (!sessionResult.called) {
 						const legacy = await invokeWithCompat(account, 'createEmailSession', [email, passwordVal], { email, password: passwordVal });
+						if (legacy.called) sessionData = legacy.value;
+
 						if (!legacy.called && typeof account.createSession === 'function' && account.createSession.length > 1) {
-							await account.createSession(email, passwordVal);
+							sessionData = await account.createSession(email, passwordVal);
 						}
 					}
 					
 					// Get the newly created user ID and ensure their collection exists
 					cachedUserId = null; // Clear cache to force fresh fetch
-					const userId = await getCurrentUserId();
+					
+					// Use userId from session if available (avoids propagation delay)
+					let userId = (sessionData && sessionData.userId) ? sessionData.userId : await getCurrentUserId();
+					
 					if (userId) {
 						try {
+							// Ensure collection structure: name, due, assigned, category, color, estimated_time, complete, repeat, priority
 							await ensureUserCollection(userId);
 						} catch (collErr) {
 							console.warn('Could not ensure user collection:', collErr);
@@ -1875,7 +1897,14 @@ document.addEventListener('DOMContentLoaded', () => {
 					}
 					
 					window.location.href = '../dashboard/index.html';
-				} catch (err) { console.error('Signup error',err); showFormError(signupForm, err.message || 'Sign up failed'); }
+				} catch (err) { 
+					console.error('Signup/Login error',err); 
+					if (err.message && (err.message.includes('Invalid credentials') || err.code === 401)) {
+						showFormError(signupForm, 'Account already exists. Please log in.');
+					} else {
+						showFormError(signupForm, err.message || 'Sign up failed'); 
+					}
+				}
 			});
 		}
 
