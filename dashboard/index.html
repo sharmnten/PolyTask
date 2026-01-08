@@ -41,8 +41,18 @@
     }
     .stat-box:hover { transform: translateY(-2px); }
     .stat-box h3 { font-size: 0.85rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; margin: 0 0 0.5rem 0; }
-    .stat-box .value { font-size: 2.5rem; font-weight: 700; color: var(--dark-slate); line-height: 1; }
+    .stat-box .value { font-size: 2.5rem; font-weight: 700; color: var(--primary); line-height: 1; }
     
+    /* Color integration */
+    .stat-box:nth-child(1) { border-top: 4px solid var(--sandy); }
+    .stat-box:nth-child(1) .value { color: var(--sandy); }
+    
+    .stat-box:nth-child(2) { border-top: 4px solid var(--coral); }
+    .stat-box:nth-child(2) .value { color: var(--coral); }
+    
+    .stat-box:nth-child(3) { border-top: 4px solid var(--mint); }
+    .stat-box:nth-child(3) .value { color: var(--mint); }
+
     .insight-card {
       background: linear-gradient(135deg, var(--dark-slate), var(--primary));
       color: white;
@@ -77,14 +87,20 @@
       background: white;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       transform: translateY(-2px);
-      border-color: var(--primary);
+      border-color: currentColor;
     }
     .action-btn svg {
       width: 32px;
       height: 32px;
       margin-bottom: 0.75rem;
-      color: var(--accent);
+      color: currentColor;
     }
+
+    /* Quick Action Colors */
+    .action-grid > :nth-child(1) { color: var(--violet); }
+    .action-grid > :nth-child(2) { color: var(--dark-cyan); }
+    .action-grid > :nth-child(3) { color: var(--cadet); }
+
     .focus-widget {
         grid-column: 1 / -1;
         background: var(--card-bg);
@@ -128,7 +144,7 @@
       </div>
       <div class="stat-box">
         <h3>Due Today</h3>
-        <div class="value" id="statToday" style="color:var(--coral)">-</div>
+        <div class="value" id="statToday">-</div>
       </div>
       <div class="stat-box">
         <h3>Efficiency</h3>
@@ -256,7 +272,7 @@
                  dueToday.sort((a,b) => (pMap[b.priority]||0) - (pMap[a.priority]||0));
                  const topTask = dueToday[0];
                  const pLabel = topTask.priority ? topTask.priority.charAt(0).toUpperCase() + topTask.priority.slice(1) : 'Medium';
-                 summary = `You have <strong>${dueToday.length}</strong> urgent tasks today. Top priority: "${topTask.name}" <span style="font-size:0.8em;opacity:0.8;background:${topTask.priority==='high'?'var(--accent)':'var(--muted)'};color:white;padding:2px 6px;border-radius:4px;">${pLabel}</span>.`;
+                 summary = `You have <strong>${dueToday.length}</strong> tasks for today. Your focus is: "<strong>${topTask.name}</strong>" <span style="font-size:0.8em;opacity:0.8;background:${topTask.priority==='high'?'var(--accent)':'var(--muted)'};color:white;padding:2px 6px;border-radius:4px;">${pLabel}</span>.`;
              } else if (pending.length > 0) {
                  summary = `No urgent tasks today, but <strong>${pending.length}</strong> pending items in your backlog.`;
              } else {

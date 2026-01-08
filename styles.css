@@ -32,10 +32,15 @@
 body.dark {
     --bg: #0f172a;
     --card-bg: #1e293b;
-    --primary: #94a3b8;
+    --primary: #a5b4fc; /* Brighter Indigo */
     --muted: #94a3b8;
     --border-color: #334155;
     color: #e2e8f0;
+    
+    /* Tweaked accents for dark mode contrast */
+    --coral: #f87171;
+    --dark-slate: #818cf8;
+    --violet: #c084fc;
 }
 
 body.dark .task-item, 
@@ -63,6 +68,9 @@ body {
     box-sizing: border-box;
     background-color: var(--bg);
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 /* Card / centered container used by login/signup pages */
 .card {
@@ -221,7 +229,7 @@ body {
 #createTaskBtn-wrapper:hover #createTaskBtn-popup {
     opacity: 1;
     transform: translateY(0);
-    bottom: 56px; /* Move to full height above button */
+    bottom: 52px; /* Stay slightly tucked behind to prevent gap during overshoot */
     pointer-events: auto;
 }
 
@@ -445,6 +453,7 @@ footer {
     padding: 22px 0;
     width: 100%;
     border-radius: var(--radius) var(--radius) 0 0;
+    margin-top: auto;
 }
 h1{
     color: var(--violet);
