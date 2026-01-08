@@ -396,170 +396,149 @@ document.addEventListener('DOMContentLoaded', () => {
 			const App = AppwriteModule;
 			const db = new App.Databases(client);
 			let collectionExists = false;
+			let collection = null;
+
 			// Check if collection exists
 			try {
 				const existing = await invokeWithCompat(db, 'getCollection', [APPWRITE_DATABASE, userId], {
 					databaseId: APPWRITE_DATABASE,
 					collectionId: userId
 				});
-				if (existing.called && existing.value) {
-					console.log(`Collection ${userId} already exists`);
+				if (existing && (existing.value || existing)) {
+					collection = existing.value || existing;
 					collectionExists = true;
-					// Try to ensure new attributes like 'completed' exist
-					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'completed', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'completed', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'complete', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'complete', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', true, 0], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: true, min: 0 }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'repeat', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 20, true], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 20, required: true }); } catch (e) {}
-					return existing.value;
-				}
-				// Try legacy signature
-				const col = await db.getCollection(APPWRITE_DATABASE, userId);
-				if (col) {
-					console.log(`Collection ${userId} already exists`);
-					collectionExists = true;
-					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'completed', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'completed', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'complete', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'complete', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', true, 0], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: true, min: 0 }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'repeat', false, false], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', required: false, default: false }); } catch (e) {}
-					try { await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 20, true], { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 20, required: true }); } catch (e) {}
-					return col;
+					console.log(`Collection ${userId} exists. Verifying attributes...`);
 				}
 			} catch (err) {
-				// Collection doesn't exist, create it
 				console.log(`Collection ${userId} not found, creating...`);
 			}
 
-			// Create collection with user ID as collection ID and set permissions
-			// Permissions: allow the owner (user) to read, create, update, and delete their own documents
-			const permissions = [
-				`read("user:${userId}")`,
-				`create("user:${userId}")`,
-				`update("user:${userId}")`,
-				`delete("user:${userId}")`
-			];
-			
-			const created = await invokeWithCompat(db, 'createCollection', [APPWRITE_DATABASE, userId, userId, permissions, false], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				name: userId,
-				permissions: permissions,
-				documentSecurity: false
-			});
-			const collection = created.called ? created.value : await db.createCollection(APPWRITE_DATABASE, userId, userId, permissions, false);
-			console.log(`Created collection ${userId} with permissions:`, permissions);
-
-			// Create attributes matching existing schema: due, assigned, category, color, name
-			// due (datetime, required)
-			await invokeWithCompat(db, 'createDatetimeAttribute', [APPWRITE_DATABASE, userId, 'due', true], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				key: 'due',
-				required: true
-			});
-
-			// assigned (datetime, optional)
-			await invokeWithCompat(db, 'createDatetimeAttribute', [APPWRITE_DATABASE, userId, 'assigned', false], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				key: 'assigned',
-				required: false
-			});
-
-			// category (string, optional, size 20)
-			await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'category', 20, false], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				key: 'category',
-				size: 20,
-				required: false
-			});
-
-			// color (string, optional, size 20, default 'cadet')
-			await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'color', 20, false, 'cadet'], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				key: 'color',
-				size: 20,
-				required: false,
-				default: 'cadet'
-			});
-
-			// name (string, required, size 50)
-			await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'name', 50, true], {
-				databaseId: APPWRITE_DATABASE,
-				collectionId: userId,
-				key: 'name',
-				size: 50,
-				required: true
-			});
-
-			// estimateMinutes (integer, optional, min 1)
-			try {
-				await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimateMinutes', false, 1], {
-					databaseId: APPWRITE_DATABASE,
-					collectionId: userId,
-					key: 'estimateMinutes',
-					required: false,
-					min: 1
-				});
-			} catch (e) {
-				// ignore if already exists or if backend rejects optional bounds signature
+			// If not exists, create it
+			if (!collectionExists) {
+				// Permissions: allow the owner (user) to read, create, update, and delete their own documents
+				const permissions = [
+					`read("user:${userId}")`,
+					`create("user:${userId}")`,
+					`update("user:${userId}")`,
+					`delete("user:${userId}")`
+				];
+				
+				try {
+					const created = await invokeWithCompat(db, 'createCollection', [APPWRITE_DATABASE, userId, userId, permissions, false], {
+						databaseId: APPWRITE_DATABASE,
+						collectionId: userId,
+						name: userId,
+						permissions: permissions,
+						documentSecurity: false
+					});
+					collection = created.called ? created.value : await db.createCollection(APPWRITE_DATABASE, userId, userId, permissions, false);
+					console.log(`Created collection ${userId}`);
+				} catch (createErr) {
+					console.error('Failed to create collection:', createErr);
+					throw createErr;
+				}
 			}
-			
-			// estimated_time (integer, required, min 0) - matches existing schema
-			try {
-				await invokeWithCompat(db, 'createIntegerAttribute', [APPWRITE_DATABASE, userId, 'estimated_time', true, 0], {
-					databaseId: APPWRITE_DATABASE,
-					collectionId: userId,
-					key: 'estimated_time',
-					required: true,
-					min: 0
-				});
-			} catch (e) { }
 
-			console.log(`Created attributes for collection ${userId}`);
-			// completed (boolean, optional, default false)
-			try {
-				await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'completed', false, false], {
-					databaseId: APPWRITE_DATABASE,
-					collectionId: userId,
-					key: 'completed',
-					required: false,
-					default: false
-				});
-			} catch (e) { /* ignore if exists */ }
-			
-			// complete (boolean, optional, default false) - matches createUserTask payload
-			try {
-				await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'complete', false, false], {
-					databaseId: APPWRITE_DATABASE,
-					collectionId: userId,
+			// Define Attributes Schema
+			// Each item: [method, args, compatArgs]
+			const attributes = [
+				{
+					key: 'due',
+					method: 'createDatetimeAttribute',
+					args: [APPWRITE_DATABASE, userId, 'due', true],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'due', required: true }
+				},
+				{
+					key: 'name',
+					method: 'createStringAttribute',
+					args: [APPWRITE_DATABASE, userId, 'name', 50, true],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'name', size: 50, required: true }
+				},
+				{
+					key: 'assigned',
+					method: 'createDatetimeAttribute',
+					args: [APPWRITE_DATABASE, userId, 'assigned', false],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'assigned', required: false }
+				},
+				{
+					key: 'category',
+					method: 'createStringAttribute',
+					args: [APPWRITE_DATABASE, userId, 'category', 20, false],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'category', size: 20, required: false }
+				},
+				{
+					key: 'color',
+					method: 'createStringAttribute',
+					args: [APPWRITE_DATABASE, userId, 'color', 20, false, 'cadet'],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'color', size: 20, required: false, default: 'cadet' }
+				},
+				{
+					key: 'estimated_time',
+					method: 'createIntegerAttribute',
+					args: [APPWRITE_DATABASE, userId, 'estimated_time', true, 0],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'estimated_time', required: true, min: 0 }
+				},
+				{
 					key: 'complete',
-					required: false,
-					default: false
-				});
-			} catch (e) { /* ignore if exists */ }
-			// repeat (boolean, optional, default false)
-			try {
-				await invokeWithCompat(db, 'createBooleanAttribute', [APPWRITE_DATABASE, userId, 'repeat', false, false], {
-					databaseId: APPWRITE_DATABASE,
-					collectionId: userId,
+					method: 'createBooleanAttribute',
+					args: [APPWRITE_DATABASE, userId, 'complete', false, false],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'complete', required: false, default: false }
+				},
+				{
 					key: 'repeat',
-					required: false,
-					default: false
-				});
-			} catch (e) { /* ignore if exists */ }
-			// priority (string, required, size 20)
-			try {
-				await invokeWithCompat(db, 'createStringAttribute', [APPWRITE_DATABASE, userId, 'priority', 20, true], {
-					databaseId: APPWRITE_DATABASE,
-					collectionId: userId,
+					method: 'createBooleanAttribute',
+					args: [APPWRITE_DATABASE, userId, 'repeat', false, false],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'repeat', required: false, default: false }
+				},
+				{
 					key: 'priority',
-					size: 20,
-					required: true
-				});
-			} catch (e) { /* ignore if exists */ }
+					method: 'createStringAttribute',
+					args: [APPWRITE_DATABASE, userId, 'priority', 20, true],
+					compat: { databaseId: APPWRITE_DATABASE, collectionId: userId, key: 'priority', size: 20, required: true }
+				}
+			];
+
+			// Create Missing Attributes
+			for (const attr of attributes) {
+				try {
+					await invokeWithCompat(db, attr.method, attr.args, attr.compat);
+				} catch (e) {
+					// Ignore if exists, log otherwise
+					if (e.code !== 409 && (!e.message || !e.message.includes('already exists'))) {
+						/* console.warn(`Note: Attribute ${attr.key} creation:`, e.message); */
+					}
+				}
+			}
+
+			// PROPER WAY: WAIT FOR ATTRIBUTES TO BE AVAILABLE
+			// Polling for attribute availability
+			const requiredKeys = attributes.map(a => a.key);
+			const maxRetries = 20; // 10 seconds
+			for (let i = 0; i < maxRetries; i++) {
+				try {
+					const listData = await invokeWithCompat(db, 'listAttributes', [APPWRITE_DATABASE, userId], {
+						databaseId: APPWRITE_DATABASE,
+						collectionId: userId
+					});
+					const attrs = listData.called ? listData.value.attributes : (await db.listAttributes(APPWRITE_DATABASE, userId)).attributes;
+					
+					// Check if all our required keys exist and are 'available'
+					const ready = requiredKeys.every(k => {
+						const found = attrs.find(a => a.key === k);
+						return found && found.status === 'available';
+					});
+
+					if (ready) {
+						console.log(`Collection ${userId} is ready.`);
+						return collection;
+					}
+				} catch (pollErr) {
+					console.warn('Polling attributes failed:', pollErr);
+				}
+				// Wait 500ms
+				await new Promise(r => setTimeout(r, 500));
+			}
+			console.warn(`Collection ${userId} attributes timed out (might not be ready yet).`);
 			return collection;
 		}
 
