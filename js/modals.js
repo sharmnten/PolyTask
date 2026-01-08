@@ -1,0 +1,451 @@
+
+import { 
+    createUserTask, 
+    updateUserTask, 
+    deleteUserTask, 
+    listUserTasks, 
+    autoSchedule,
+    categorizeTasks
+} from './tasks.js';
+import { 
+    showToast, 
+    formatDateISO, 
+    startOfDay 
+} from './ui.js';
+import { getCurrentDay, loadAndRender } from './calendar.js';
+
+function parseHHMM(str) {
+    if (!str || typeof str !== 'string' || !/^[0-9]{2}:[0-9]{2}$/.test(str)) return null;
+    const [hh, mm] = str.split(':').map(n => parseInt(n,10));
+    if (hh<0||hh>23||mm<0||mm>59) return null;
+    return { hh, mm, minutes: hh*60+mm };
+}
+
+function weekStartOf(date) {
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+    const day = d.getDay(); // 0 Sun .. 6 Sat
+    d.setDate(d.getDate() - day);
+    return d;
+}
+
+// --- Schedule Modal Logic ---
+let scheduleExistingDocs = [];
+
+export function initScheduleModal() {
+    const schedulePopup = document.getElementById('createTaskBtn-popup');
+    const defineScheduleModal = document.getElementById('defineScheduleModal');
+    const cancelScheduleBtn = document.getElementById('cancelSchedule');
+    const scheduleForm = document.getElementById('scheduleForm');
+    const repeatWeeklyEl = document.getElementById('repeatWeekly');
+
+    function addIntervalRow(dayIdx, defaults) {
+        const container = document.querySelector(`.day-intervals[data-day="${dayIdx}"] .intervals`);
+        if (!container) return;
+        const row = document.createElement('div');
+        row.className = 'interval';
+        row.innerHTML = `
+                <input type=\"time\" class=\"start\" aria-label=\"Start time\" value=\"${defaults && defaults.start ? defaults.start : ''}\">
+                <span style=\"opacity:.7;\">to</span>
+                <input type=\"time\" class=\"end\" aria-label=\"End time\" value=\"${defaults && defaults.end ? defaults.end : ''}\">
+                <input type=\"text\" class=\"label\" aria-label=\"What is this time for?\" placeholder=\"What is this time for?\" value=\"${defaults && defaults.label ? defaults.label.replace(/\\/g,'\\\\').replace(/"/g,'\\\"') : ''}\">
+            <button type="button" class="remove-interval" title="Remove">×</button>
+        `;
+        row.querySelector('.remove-interval').addEventListener('click', () => {
+            row.remove();
+        });
+        container.appendChild(row);
+        return row;
+    }
+
+    document.querySelectorAll('.add-interval').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const dayIdx = btn.getAttribute('data-day');
+            addIntervalRow(dayIdx);
+        });
+    });
+
+    function clearScheduleUI() {
+        document.querySelectorAll('.day-intervals .intervals').forEach(el => { el.innerHTML = ''; });
+        if (repeatWeeklyEl) repeatWeeklyEl.checked = true;
+    }
+
+    async function populateScheduleFromExisting() {
+        const docs = await listUserTasks();
+        const base = weekStartOf(getCurrentDay());
+        const weekStart = new Date(base);
+        const weekEnd = new Date(base); weekEnd.setDate(weekEnd.getDate() + 7);
+        const isBlocked = d => (String(d.category||'').toLowerCase()==='blocked');
+        const inWeek = iso => { const dt = new Date(iso); return dt >= weekStart && dt < weekEnd; };
+        
+        let picked = docs.filter(d => isBlocked(d) && d.repeat === true);
+        if (!picked.length) picked = docs.filter(d => isBlocked(d) && d.assigned && inWeek(d.assigned));
+
+        scheduleExistingDocs = picked.slice();
+
+        clearScheduleUI();
+        picked.forEach(d => {
+            if (!d.assigned) return;
+            const dt = new Date(d.assigned);
+            const day = dt.getDay();
+            const hh = String(dt.getHours()).padStart(2,'0');
+            const mm = String(dt.getMinutes()).padStart(2,'0');
+            const label = d.name || 'Blocked time';
+            const mins = typeof d.estimated_time==='number' ? d.estimated_time : (typeof d.estimateMinutes==='number'? d.estimateMinutes : 60);
+            const endDate = new Date(dt.getTime() + mins*60000);
+            const eh = String(endDate.getHours()).padStart(2,'0');
+            const em = String(endDate.getMinutes()).padStart(2,'0');
+            const row = addIntervalRow(day, { start: `${hh}:${mm}`, end: `${eh}:${em}`, label });
+            if (row && d.$id) row.dataset.docId = d.$id;
+        });
+
+        if (repeatWeeklyEl) repeatWeeklyEl.checked = picked.some(d => d.repeat === true);
+    }
+
+    function openScheduleModal() {
+        clearScheduleUI();
+        populateScheduleFromExisting().finally(() => {
+            defineScheduleModal.style.display = 'flex';
+        });
+    }
+
+    if (schedulePopup && defineScheduleModal) {
+        schedulePopup.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openScheduleModal();
+        });
+    }
+    if (cancelScheduleBtn && defineScheduleModal) {
+        cancelScheduleBtn.addEventListener('click', () => {
+            defineScheduleModal.style.display = 'none';
+        });
+    }
+
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errors = [];
+            const intervalsByDay = {};
+            const base = weekStartOf(getCurrentDay());
+            document.querySelectorAll('.day-intervals').forEach(dayEl => {
+                const dayIdx = parseInt(dayEl.getAttribute('data-day'),10);
+                const rows = Array.from(dayEl.querySelectorAll('.interval'));
+                const parts = [];
+                rows.forEach(r => {
+                    const startVal = r.querySelector('.start')?.value || '';
+                    const endVal = r.querySelector('.end')?.value || '';
+                    const labelVal = r.querySelector('.label')?.value || '';
+                    const docId = r.dataset && r.dataset.docId ? r.dataset.docId : null;
+                    const s = parseHHMM(startVal);
+                    const e2 = parseHHMM(endVal);
+                    if (!s || !e2) return; 
+                    if (e2.minutes <= s.minutes) { errors.push(`End must be after start for day ${dayIdx}`); return; }
+                    parts.push({ start: s, end: e2, label: labelVal, docId });
+                });
+                if (parts.length) intervalsByDay[dayIdx] = parts;
+            });
+            if (errors.length) { showToast(errors[0], 'error'); return; }
+            
+            const toCreate = [];
+            const toUpdate = [];
+            const seenDocIds = new Set();
+            const repeatVal = !!(repeatWeeklyEl && repeatWeeklyEl.checked);
+
+            Object.keys(intervalsByDay).forEach(k => {
+                const dayIdx = parseInt(k,10);
+                const date = new Date(base);
+                date.setDate(base.getDate() + dayIdx);
+                intervalsByDay[dayIdx].forEach(({start, end, label, docId}) => {
+                    const startDate = new Date(date);
+                    startDate.setHours(start.hh, start.mm, 0, 0);
+                    const endDate = new Date(date);
+                    endDate.setHours(end.hh, end.mm, 0, 0);
+                    const durationMin = Math.max(1, Math.round((endDate - startDate) / 60000));
+                    const payload = {
+                        name: (label && label.trim()) ? label.trim() : 'Blocked time',
+                        due: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59).toISOString(),
+                        assigned: startDate.toISOString(),
+                        category: 'Blocked',
+                        color: 'black',
+                        estimated_time: durationMin,
+                        complete: false,
+                        repeat: repeatVal,
+                        priority: 'medium'
+                    };
+                    if (docId) {
+                        toUpdate.push({ id: docId, payload });
+                        seenDocIds.add(docId);
+                    } else {
+                        toCreate.push(payload);
+                    }
+                });
+            });
+            
+            if (!toCreate.length && !toUpdate.length) { showToast('Add at least one time range', 'info'); return; }
+            try {
+                await Promise.all(toUpdate.map(({ id, payload }) => updateUserTask(id, payload)));
+                await Promise.all(toCreate.map(payload => createUserTask(payload)));
+                const existing = Array.isArray(scheduleExistingDocs) ? scheduleExistingDocs : [];
+                await Promise.all(
+                    existing
+                        .filter(d => d && d.$id && !seenDocIds.has(d.$id))
+                        .map(d => deleteUserTask(d.$id))
+                );
+                defineScheduleModal.style.display = 'none';
+                await loadAndRender();
+                showToast('Schedule updated', 'success');
+            } catch (err) {
+                console.error('Failed to create blocked events', err);
+                showToast(err.message || 'Failed to create blocked events', 'error');
+            }
+        });
+    }
+
+    return { openScheduleModal };
+}
+
+// --- Edit Modal (General) ---
+export function initEditModal() {
+    const editEventModal = document.getElementById('editEventModal');
+    const editEventForm = document.getElementById('editEventForm');
+    const cancelEditEventBtn = document.getElementById('cancelEditEvent');
+    const editDocId = document.getElementById('editDocId');
+    const editTitle = document.getElementById('editTitle');
+    const editDate = document.getElementById('editDate');
+    const editStart = document.getElementById('editStart');
+    const editDuration = document.getElementById('editDuration');
+    const editPriority = document.getElementById('editPriority');
+    const editCategory = document.getElementById('editCategory');
+    const editColor = document.getElementById('editColor');
+    const editRepeatWeekly = document.getElementById('editRepeatWeekly');
+    const editCompleted = document.getElementById('editCompleted');
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function closeEditModal() { if (editEventModal) editEventModal.style.display = 'none'; }
+    if (cancelEditEventBtn) cancelEditEventBtn.addEventListener('click', closeEditModal);
+
+    function openGeneralEditModal(task) {
+        if (!editEventModal) return;
+        const id = String(task.id || '');
+        let realId = id;
+        if (id.startsWith('virt-')) {
+            const idx = id.lastIndexOf('-');
+            realId = id.slice(5, idx > 4 ? idx : undefined);
+        }
+        if (editDocId) editDocId.value = realId;
+        if (editTitle) editTitle.value = task.title || '';
+        const when = task.assigned ? new Date(task.assigned) : (task.date ? new Date(task.date + 'T00:00:00') : new Date());
+        if (editDate) editDate.value = (task.date ? task.date : when.toISOString().slice(0,10));
+        if (editStart) editStart.value = pad2(when.getHours()) + ':' + pad2(when.getMinutes());
+        if (editDuration) editDuration.value = task.estimateMinutes || 60;
+        if (editPriority) editPriority.value = task.priority || 'medium';
+        if (editCategory) editCategory.value = task.category || '';
+        if (editColor) editColor.value = (String(task.color||'').startsWith('#') ? task.color : '#3b82f6');
+        if (editRepeatWeekly) editRepeatWeekly.checked = !!task.repeat;
+        if (editCompleted) editCompleted.checked = !!task.completed;
+        editEventModal.style.display = 'flex';
+    }
+
+    if (editEventForm) {
+        editEventForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!editDocId || !editDocId.value) { showToast('Missing event id.', 'error'); return; }
+            const title = (editTitle && editTitle.value.trim()) || '';
+            const dateStr = (editDate && editDate.value) || '';
+            const timeStr = (editStart && editStart.value) || '';
+            const duration = Math.max(1, parseInt((editDuration && editDuration.value) || '60', 10));
+            if (!title || !dateStr || !/^[0-9]{2}:[0-9]{2}$/.test(timeStr)) { showToast('Please complete required fields.', 'error'); return; }
+            const [hh, mm] = timeStr.split(':').map(n => parseInt(n,10));
+            const assigned = new Date(dateStr + 'T00:00:00'); assigned.setHours(hh, mm, 0, 0);
+            const payload = {
+                name: title,
+                assigned: assigned.toISOString(),
+                due: new Date(dateStr + 'T23:59:59').toISOString(),
+                estimated_time: duration,
+                priority: (editPriority && editPriority.value) || 'medium',
+                category: (editCategory && editCategory.value.trim()) || null,
+                color: (editColor && editColor.value) || '#3b82f6',
+                repeat: !!(editRepeatWeekly && editRepeatWeekly.checked),
+                complete: !!(editCompleted && editCompleted.checked)
+            };
+            try {
+                await updateUserTask(editDocId.value, payload);
+                closeEditModal();
+                await loadAndRender();
+                showToast('Event updated', 'success');
+            } catch (err) {
+                console.error('Update event failed', err);
+                showToast(err.message || 'Failed to update event', 'error');
+            }
+        });
+    }
+
+    return { openGeneralEditModal };
+}
+
+// --- Create Task Helper (Smart Input) ---
+function parseSmartInput(text) {
+    const result = { title: text, date: null, time: null, duration: null };
+    if (!text) return result;
+    const lower = text.toLowerCase();
+    const now = new Date();
+
+    const durRegex = /\b(?:for\s+)?(\d+(?:\.\d+)?)\s*(m|min|mins|minutes|h|hr|hours)\b/i;
+    const durMatch = text.match(durRegex);
+    if (durMatch) {
+        const val = parseFloat(durMatch[1]);
+        const unit = durMatch[2].toLowerCase().startsWith('h') ? 60 : 1;
+        result.duration = Math.round(val * unit);
+        result.title = result.title.replace(durMatch[0], '');
+    } else {
+        if (/\b(quick|chat|check|email|standup)\b/i.test(text)) result.duration = 15;
+        else if (/\b(call|meeting|sync|discussion)\b/i.test(text)) result.duration = 30;
+        else if (/\b(review|draft|analysis)\b/i.test(text)) result.duration = 45;
+        else if (/\b(deep|focus|write|code|coding|plan|lab)\b/i.test(text)) result.duration = 60;
+    }
+
+    const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i;
+    const timeMatch = text.match(timeRegex);
+    if (timeMatch) {
+        let [match, h, m, meridiem] = timeMatch;
+        let hour = parseInt(h, 10);
+        let minute = m ? parseInt(m, 10) : 0;
+        if (meridiem) {
+            meridiem = meridiem.toLowerCase().replace(/\./g, '');
+            if (meridiem === 'pm' && hour < 12) hour += 12;
+            if (meridiem === 'am' && hour === 12) hour = 0;
+        } else {
+            if (!m && hour < 7) hour += 12; 
+        }
+        if (hour >= 0 && hour < 24 && minute >= 0 && minute < 60) {
+            result.time = `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+            result.title = result.title.replace(match, '').replace(/\s+/g, ' ').trim();
+        }
+    }
+
+    let addedDays = 0;
+    if (lower.includes('tomorrow') || lower.includes('tmrw')) {
+        addedDays = 1; result.title = result.title.replace(/tomorrow|tmrw/i, '');
+    } else if (lower.includes('today')) {
+        addedDays = 0; result.title = result.title.replace(/today/i, '');
+    } else {
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const shortDays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        for (let i=0; i<7; i++) {
+            if (lower.includes(days[i]) || lower.match(new RegExp(`\\b${shortDays[i]}\\b`))) {
+                const currentDayIdx = now.getDay();
+                let diff = i - currentDayIdx;
+                if (diff <= 0) diff += 7;
+                addedDays = diff;
+                result.title = result.title.replace(new RegExp(`(${days[i]}|\\b${shortDays[i]}\\b)`, 'i'), '');
+                break;
+            }
+        }
+    }
+    if (addedDays > 0) {
+        const targetDate = new Date();
+        targetDate.setDate(now.getDate() + addedDays);
+        result.date = formatDateISO(targetDate);
+    }
+    result.title = result.title.replace(/\s+/g, ' ').replace(/\bat\b/gi, '').replace(/\bon\b/gi, '').replace(/\bfor\b/gi, '').trim();
+    return result;
+}
+
+
+// --- Create Task Modal ---
+export function initTaskModal() {
+    const createBtn = document.getElementById('createTaskBtn'); 
+    const modal = document.getElementById('taskModal'); 
+    const cancelBtn = document.getElementById('cancelTask'); 
+    const taskForm = document.getElementById('taskCreateForm');
+    
+    function openCreateModal(dateStr, timeStr) {
+        if (!modal) return;
+        const dateEl = document.getElementById('taskDueDate');
+        const timeEl = document.getElementById('taskAssignedTime');
+        const title = document.getElementById('taskTitle');
+        const smartInput = document.getElementById('smartInput');
+        document.getElementById('taskCreateForm').reset();
+        if (dateEl) dateEl.value = dateStr || formatDateISO(getCurrentDay());
+        if (timeEl) timeEl.value = timeStr || '';
+        modal.style.display = 'flex';
+        if (smartInput) smartInput.focus(); else if (title) title.focus();
+    }
+
+    if (createBtn && modal) {
+        createBtn.addEventListener('click', () => { 
+            openCreateModal(formatDateISO(getCurrentDay()));
+        });
+    }
+    if (cancelBtn && modal) cancelBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    
+    const smartInput = document.getElementById('smartInput');
+    if (smartInput) {
+        smartInput.addEventListener('change', () => {
+            const val = smartInput.value;
+            if (!val) return;
+            const parsed = parseSmartInput(val);
+            if (parsed.title) document.getElementById('taskTitle').value = parsed.title;
+            if (parsed.date) document.getElementById('taskDueDate').value = parsed.date;
+            if (parsed.time) document.getElementById('taskAssignedTime').value = parsed.time;
+            if (parsed.duration) document.getElementById('taskEstimateMinutes').value = parsed.duration;
+        });
+        smartInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                smartInput.blur();
+                document.getElementById('taskTitle').focus();
+            }
+        });
+    }
+
+    if (taskForm) {
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const name = document.getElementById('taskTitle').value.trim(); 
+            const dueDate = document.getElementById('taskDueDate').value; 
+            const estimateStr = (document.getElementById('taskEstimateMinutes')||{}).value || '';
+            const estimateMinutes = estimateStr ? Math.max(1, parseInt(estimateStr, 10)) : 60;
+            const priorityVal = (document.getElementById('taskPriority')||{}).value || 'medium';
+            const assignedTime = (document.getElementById('taskAssignedTime')||{}).value;
+            
+            if (!name || !dueDate) return showToast('Please enter task name and due date', 'error');
+            
+            let assignedIso = null;
+            let dueIso = new Date(dueDate + 'T23:59:59.000Z').toISOString();
+            if (assignedTime) {
+                assignedIso = new Date(`${dueDate}T${assignedTime}:00.000Z`).toISOString();
+            }
+            
+            const taskData = {
+                name: name,
+                due: dueIso,
+                category: null,
+                color: null,
+                assigned: assignedIso,
+                estimated_time: estimateMinutes,
+                complete: false,
+                priority: priorityVal
+            };
+            
+            try { 
+                await createUserTask(taskData); 
+                modal.style.display='none'; 
+                taskForm.reset(); 
+                await loadAndRender(); 
+                showToast('Task created', 'success');
+                await categorizeTasks();
+                const count = await autoSchedule(getCurrentDay());
+                if (count > 0) {
+                     showToast(`Auto-scheduled ${count} tasks`, 'success');
+                     await loadAndRender();
+                }
+            } catch (err) { 
+                console.error('create task error',err); 
+                showToast(err.message || 'Could not create task', 'error'); 
+            }
+        });
+    }
+
+    return { openCreateModal, parseSmartInput };
+}
