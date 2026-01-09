@@ -15,6 +15,29 @@ import {
 let currentDay = new Date(); // Default to today
 currentDay.setHours(0,0,0,0);
 
+// Handlers injected from main.js
+let openCreateModalHandler = null;
+let openScheduleModalHandler = null;
+let openGeneralEditModalHandler = null;
+
+let currentViewMode = 'day';
+
+export function setViewMode(mode) {
+    currentViewMode = mode;
+    console.log('View mode set to:', mode);
+}
+
+export function initCalendarInteractions() {
+    // Placeholder for global calendar interactions
+    console.log('Calendar interactions initialized');
+}
+
+export function setModalHandlers(create, schedule, edit) {
+    openCreateModalHandler = create;
+    openScheduleModalHandler = schedule;
+    openGeneralEditModalHandler = edit;
+}
+
 // Expose current day for other modules
 export function getCurrentDay() { return currentDay; }
 export function setCurrentDay(d) { 
@@ -60,16 +83,7 @@ export async function performUndo() {
     }
 }
 
-// Global hook for opening the create modal (injected by script.js)
-let openCreateModalHandler = null;
-let openEditModalHandler = null;
-let openScheduleModalHandler = null;
 
-export function setModalHandlers({ onCreate, onEdit, onSchedule }) {
-    if (onCreate) openCreateModalHandler = onCreate;
-    if (onEdit) openEditModalHandler = onEdit;
-    if (onSchedule) openScheduleModalHandler = onSchedule;
-}
 
 export async function loadAndRender() {
     const calendarEl = document.getElementById('calendar');
@@ -437,6 +451,12 @@ function renderCalendar(tasks) {
                 if (openScheduleModalHandler) openScheduleModalHandler();
             });
         } else {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', (e) => {
+                 if (e.target.closest('.complete-btn') || e.target.closest('.resize-handle')) return;
+                 if (openGeneralEditModalHandler) openGeneralEditModalHandler(it);
+            });
+
             if (!it.completed) {
                 card.draggable = true;
                 card.addEventListener('dragstart', (e) => {
@@ -503,13 +523,6 @@ function renderCalendar(tasks) {
                     document.addEventListener('mouseup', onUp);
                 });
             }
-
-            card.style.cursor = 'pointer';
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('.complete-btn') || e.target.closest('.resize-handle')) return;
-                e.preventDefault(); e.stopPropagation();
-                if (openEditModalHandler) openEditModalHandler(it);
-            });
         }
 
         btn.addEventListener('click', async (e) => {

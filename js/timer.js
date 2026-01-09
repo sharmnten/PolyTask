@@ -1,5 +1,5 @@
 
-import { showToast, triggerConfetti } from './ui.js';
+import { showToast, fireConfetti } from './ui.js';
 
 let focusTask = null;
 let focusInterval = null;
@@ -93,7 +93,7 @@ export function endFocusSession(completed = false) {
     }
 
     if (completed) {
-        triggerConfetti();
+        fireConfetti();
         const snd = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU'); // dummy or real sound
         // Real sound not included to save space, but you can add one.
         if ('Notification' in window && Notification.permission === 'granted') {

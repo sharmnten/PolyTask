@@ -6,7 +6,8 @@ import {
     invokeWithCompat, 
     ensureUserCollection, 
     getCurrentUserId, 
-    APPWRITE_DATABASE 
+    APPWRITE_DATABASE,
+    APPWRITE_COLLECTION_TASKS
 } from './appwrite.js';
 import { showToast, formatDateISO } from './ui.js';
 
@@ -25,27 +26,20 @@ export async function listUserTasks() {
     const db = new App.Databases(client);
     if (!App.Query || typeof db.listDocuments !== 'function') throw new Error('Appwrite Databases.listDocuments or Query not available');
     
-    // Use userId as collection ID
+    // Use SINGLE TASKS COLLECTION
+    // Filter by user ID (permissions handle this automatically if doc security is on, but explicit query is faster/cleaner)
     try {
-        const modern = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, userId], {
+        const query = [ App.Query.equal('userId', userId) ];
+        
+        const modern = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, query], {
             databaseId: APPWRITE_DATABASE,
-            collectionId: userId
+            collectionId: APPWRITE_COLLECTION_TASKS,
+            queries: query
         });
-        const res = modern.called ? modern.value : await db.listDocuments(APPWRITE_DATABASE, userId);
+        const res = modern.called ? modern.value : await db.listDocuments(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, query);
         return (res && res.documents) || [];
     } catch (err) {
-        // If collection missing (404), try to ensure it exists and retry
-        if (err.code === 404 || (err.message && err.message.includes('not be found'))) {
-            console.warn('Collection missing in listUserTasks, attempting to create...');
-            await ensureUserCollection(userId);
-            // Retry once
-            const modern = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, userId], {
-                databaseId: APPWRITE_DATABASE,
-                collectionId: userId
-            });
-            const res = modern.called ? modern.value : await db.listDocuments(APPWRITE_DATABASE, userId);
-            return (res && res.documents) || [];
-        }
+        // If collection missing (404), client can't fix it.
         throw err;
     }
 }
@@ -61,41 +55,43 @@ export async function createUserTask(data) {
     const uniqueId = App.ID && typeof App.ID.unique === 'function' ? App.ID.unique() : 'unique()';
     // Normalize payload to match collection schema
     const payload = {
+        userId: userId, // CRITICAL: Tag with user ID for the single-collection model
         name: data.name,
-        due: data.due,
+        due: data.due || null,
         assigned: data.assigned || null,
         category: data.category || null,
-        color: data.color || 'cadet',
+        // color: data.color || 'cadet', // Optional: Let DB default handle it if possible, or send value
         estimated_time: typeof data.estimated_time === 'number' ? data.estimated_time : (typeof data.estimateMinutes === 'number' ? data.estimateMinutes : 60),
         complete: data.complete === true ? true : false,
         repeat: data.repeat === true ? true : false,
         priority: data.priority || 'medium'
     };
-    // Use userId as collection ID
+
+    // Remove keys that are strictly null if we want to rely on DB defaults (though Appwrite usually handles null for optional fields fine)
+    // However, for required fields, they must be present.
+    // The previous error was "Missing required attribute", which means 'assigned' IS required in DB but we sent null.
+    // If we can't change the DB right now, we can try to send a fallback, but that's logically wrong for a calendar.
+    // The user MUST fix the schema.
+
+    
+    // Explicit permissions (Read/Write for this user only)
+    const permissions = [
+        App.Permission.read(App.Role.user(userId)),
+        App.Permission.update(App.Role.user(userId)),
+        App.Permission.delete(App.Role.user(userId))
+    ];
+
     try {
-        const created = await invokeWithCompat(db, 'createDocument', [APPWRITE_DATABASE, userId, uniqueId, payload], {
+        const created = await invokeWithCompat(db, 'createDocument', [APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, uniqueId, payload, permissions], {
             databaseId: APPWRITE_DATABASE,
-            collectionId: userId,
+            collectionId: APPWRITE_COLLECTION_TASKS,
             documentId: uniqueId,
-            data: payload
+            data: payload,
+            permissions: permissions
         });
         if (created.called) return created.value;
-        return await db.createDocument(APPWRITE_DATABASE, userId, uniqueId, payload);
+        return await db.createDocument(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, uniqueId, payload, permissions);
     } catch (err) {
-        // If collection missing (404), try to ensure it exists and retry
-        if (err.code === 404 || (err.message && err.message.includes('not be found'))) {
-            console.warn('Collection missing in createUserTask, attempting to create...');
-            await ensureUserCollection(userId);
-            // Retry once
-            const created = await invokeWithCompat(db, 'createDocument', [APPWRITE_DATABASE, userId, uniqueId, payload], {
-                databaseId: APPWRITE_DATABASE,
-                collectionId: userId,
-                documentId: uniqueId,
-                data: payload
-            });
-            if (created.called) return created.value;
-            return await db.createDocument(APPWRITE_DATABASE, userId, uniqueId, payload);
-        }
         throw err;
     }
 }
@@ -106,14 +102,14 @@ export async function updateUserTask(documentId, patch) {
     const client = await ensureAppwriteClient();
     const App = getAppwriteModule();
     const db = new App.Databases(client);
-    const upd = await invokeWithCompat(db, 'updateDocument', [APPWRITE_DATABASE, userId, documentId, patch], {
+    const upd = await invokeWithCompat(db, 'updateDocument', [APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId, patch], {
         databaseId: APPWRITE_DATABASE,
-        collectionId: userId,
+        collectionId: APPWRITE_COLLECTION_TASKS,
         documentId: documentId,
         data: patch
     });
     if (upd.called) return upd.value;
-    return await db.updateDocument(APPWRITE_DATABASE, userId, documentId, patch);
+    return await db.updateDocument(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId, patch);
 }
 
 export async function deleteUserTask(documentId) {
@@ -122,13 +118,13 @@ export async function deleteUserTask(documentId) {
     const client = await ensureAppwriteClient();
     const App = getAppwriteModule();
     const db = new App.Databases(client);
-    const del = await invokeWithCompat(db, 'deleteDocument', [APPWRITE_DATABASE, userId, documentId], {
+    const del = await invokeWithCompat(db, 'deleteDocument', [APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId], {
         databaseId: APPWRITE_DATABASE,
-        collectionId: userId,
+        collectionId: APPWRITE_COLLECTION_TASKS,
         documentId
     });
     if (del.called) return del.value;
-    return await db.deleteDocument(APPWRITE_DATABASE, userId, documentId);
+    return await db.deleteDocument(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId);
 }
 
 // Categorize tasks with null categories using semantic ML
@@ -141,12 +137,14 @@ export async function categorizeTasks() {
         const App = getAppwriteModule();
         const db = new App.Databases(client);
         
-        // Get all tasks
-        const listResult = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, userId], {
+        // Get all tasks (using global ID)
+        const query = [ App.Query.equal('userId', userId) ];
+        const listResult = await invokeWithCompat(db, 'listDocuments', [APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, query], {
             databaseId: APPWRITE_DATABASE,
-            collectionId: userId
+            collectionId: APPWRITE_COLLECTION_TASKS,
+            queries: query
         });
-        const allDocs = listResult.called ? listResult.value.documents : (await db.listDocuments(APPWRITE_DATABASE, userId)).documents;
+        const allDocs = listResult.called ? listResult.value.documents : (await db.listDocuments(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, query)).documents;
         
         // Filter tasks that need categorization (null category OR 'General')
         // Skip "Blocked" tasks - they should never be auto-categorized
@@ -462,8 +460,16 @@ export async function autoSchedule(currentDay) {
 
         // 3. Build a map of occupied minutes (06:00 to 24:00)
         const occupied = new Uint8Array(24 * 60); // 0 to 1439 minutes
-        // Mark hours 0-6 as occupied
-        for (let i = 0; i < 6 * 60; i++) occupied[i] = 1;
+        
+        // Calculate scheduling horizon based on real time (Prevent past scheduling)
+        const now = new Date();
+        const pastMinutes = Math.floor((now - startOfCurrentDay) / 60000);
+        
+        // Block at least until 6 AM (360 mins), or until Now + 5m buffer if later
+        const blackoutUntil = Math.max(6 * 60, pastMinutes + 5);
+
+        // Mark blackout period as occupied
+        for (let i = 0; i < blackoutUntil && i < 1440; i++) occupied[i] = 1;
 
         fixedTasks.forEach(t => {
             const d = new Date(t.assigned);

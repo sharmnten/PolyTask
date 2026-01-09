@@ -4,10 +4,13 @@ import {
     getAppwriteModule, 
     invokeWithCompat, 
     ensureUserCollection, 
-    getCurrentUserId, 
+    getCurrentUserId,
+    getCurrentUser,
     clearCachedUserId 
 }  from './appwrite.js';
 import { showFormError } from './ui.js';
+
+export const checkSession = getCurrentUser;
 
 export async function logout() {
     const client = await ensureAppwriteClient();
@@ -17,6 +20,10 @@ export async function logout() {
     clearCachedUserId();
     // Redirect to home/login
     window.location.href = '../index.html'; 
+}
+
+export function initAuth() {
+    return initAuthHandlers();
 }
 
 export function initAuthHandlers() {
@@ -109,13 +116,26 @@ export function initAuthHandlers() {
     function validate(){ const match = pwd && confirm && pwd.value && confirm.value && pwd.value === confirm.value; const terms = !!(document.getElementById('terms')||{}).checked; if (pwMismatch) pwMismatch.style.display = match ? 'none' : 'block'; if (submitBtn) submitBtn.disabled = !(match && terms); }
     [pwd,confirm].forEach(el => el && el.addEventListener('input', validate)); const terms = document.getElementById('terms'); if (terms) terms.addEventListener('change', validate);
     signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); showFormError(signupForm,'');
-        const fullName = (document.getElementById('fullName')||{}).value||''; const email = (document.getElementById('email')||{}).value||''; const passwordVal = (document.getElementById('password')||{}).value||''; const confirmVal = (document.getElementById('confirmPassword')||{}).value||''; const termsChecked = !!(document.getElementById('terms')||{}).checked;
-        if (!email || !passwordVal || !confirmVal) return showFormError(signupForm,'Please complete all fields.'); if (passwordVal !== confirmVal) return showFormError(signupForm,'Passwords do not match.'); if (!termsChecked) return showFormError(signupForm,'You must accept the terms.');
+        e.preventDefault(); 
+        showFormError(signupForm,'');
         
-        let client, App, account;
         try {
-            client = await ensureAppwriteClient(); App = getAppwriteModule(); account = new App.Account(client);
+            const fullName = (document.getElementById('fullName')||{}).value||''; 
+            const email = (document.getElementById('email')||{}).value||''; 
+            const passwordVal = (document.getElementById('password')||{}).value||''; 
+            const confirmVal = (document.getElementById('confirmPassword')||{}).value||''; 
+            const termsChecked = !!(document.getElementById('terms')||{}).checked;
+
+            if (!email || !passwordVal || !confirmVal) throw new Error('Please complete all fields.'); 
+            if (passwordVal !== confirmVal) throw new Error('Passwords do not match.'); 
+            if (!termsChecked) throw new Error('You must accept the terms.');
+            
+            let client, App, account;
+            client = await ensureAppwriteClient(); 
+            App = getAppwriteModule(); 
+            account = new App.Account(client);
+            
+            // 1. Create Account
             const desiredId = App.ID && typeof App.ID.unique === 'function' ? App.ID.unique() : 'unique()';
             let created = await invokeWithCompat(account, 'create', [desiredId, email, passwordVal, fullName], {
                 userId: desiredId,
@@ -123,6 +143,7 @@ export function initAuthHandlers() {
                 password: passwordVal,
                 name: fullName
             });
+            
             if (!created.called) {
                 created = await invokeWithCompat(account, 'createAccount', [email, passwordVal, fullName], {
                     email,
@@ -130,41 +151,20 @@ export function initAuthHandlers() {
                     name: fullName
                 });
             }
-            if (!created.called) throw new Error('Account create not available');
-        } catch (createErr) {
-            // Check if user already exists
-            if (createErr.code === 409 || (createErr.message && (createErr.message.includes('already exists') || createErr.type === 'user_already_exists'))) {
-                console.log('User already exists, attempting to log in...');
-                // Fall through to login logic below
-            } else {
-                // Other error, rethrow
-                throw createErr;
-            }
-        }
+            // If creation failed but didn't throw (e.g. called=false), ensure we handle it?
+            // invokeWithCompat returns { called: false } if method not found.
+            // If we tried both and failed, throw.
+            if (!created.called) throw new Error('Account create method not available in SDK');
+        
+            // 2. Create Session (Login)
+            await createSession(account, email, passwordVal);
 
-        // Login and Setup (Shared for new and existing users)
-        try {
-            let sessionResult = await invokeWithCompat(account, 'createEmailPasswordSession', [email, passwordVal], { email, password: passwordVal });
-            let sessionData = sessionResult.called ? sessionResult.value : null;
-
-            if (!sessionResult.called) {
-                const legacy = await invokeWithCompat(account, 'createEmailSession', [email, passwordVal], { email, password: passwordVal });
-                if (legacy.called) sessionData = legacy.value;
-
-                if (!legacy.called && typeof account.createSession === 'function' && account.createSession.length > 1) {
-                    sessionData = await account.createSession(email, passwordVal);
-                }
-            }
-            
-            // Get the newly created user ID and ensure their collection exists
+            // 3. User Setup
+            // Get the newly created user ID and ensure their collection exists (now just ensures global tasks)
             clearCachedUserId(); // Clear cache to force fresh fetch
-            
-            // Use userId from session if available (avoids propagation delay)
-            let userId = (sessionData && sessionData.userId) ? sessionData.userId : await getCurrentUserId();
-            
+            const userId = await getCurrentUserId();
             if (userId) {
                 try {
-                    // Ensure collection structure: name, due, assigned, category, color, estimated_time, complete, repeat, priority
                     await ensureUserCollection(userId);
                 } catch (collErr) {
                     console.warn('Could not ensure user collection:', collErr);
@@ -172,13 +172,39 @@ export function initAuthHandlers() {
             }
             
             window.location.href = '../dashboard/index.html';
+
         } catch (err) { 
-            console.error('Signup/Login error',err); 
-            if (err.message && (err.message.includes('Invalid credentials') || err.code === 401)) {
-                showFormError(signupForm, 'Account already exists. Please log in.');
-            } else {
-                showFormError(signupForm, err.message || 'Sign up failed'); 
+            console.error('Signup error', err); 
+            // Handle "User already exists" scenario if it came from create()
+            if (err.code === 409 || (err.message && (err.message.includes('already exists') || err.type === 'user_already_exists'))) {
+                console.log('User already exists, attempting to log in...');
+                try {
+                    const client = await ensureAppwriteClient(); 
+                    const App = getAppwriteModule(); 
+                    const account = new App.Account(client);
+                    await createSession(account, (document.getElementById('email')||{}).value||'', (document.getElementById('password')||{}).value||'');
+                    window.location.href = '../dashboard/index.html';
+                    return;
+                } catch (loginErr) {
+                    showFormError(signupForm, 'Account exists but login failed. Please check credentials.');
+                    return;
+                }
             }
+            
+            showFormError(signupForm, err.message || 'Sign up failed'); 
         }
     });
+}
+
+async function createSession(account, email, password) {
+    let sessionResult = await invokeWithCompat(account, 'createEmailPasswordSession', [email, password], { email, password });
+    if (sessionResult.called) return sessionResult.value;
+
+    const legacy = await invokeWithCompat(account, 'createEmailSession', [email, password], { email, password });
+    if (legacy.called) return legacy.value;
+
+    if (typeof account.createSession === 'function' && account.createSession.length > 1) {
+        return await account.createSession(email, password);
+    }
+    throw new Error('Session create method not available in SDK');
 }
