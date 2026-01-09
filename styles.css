@@ -1,6 +1,13 @@
 :root {
     --radius: 15px;
     /* Palette (from comment) */
+}
+
+/* Global Reset for box-sizing */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
     --coral: #EF6F6C;   /* Coral Red */
     --dark-slate: #465775; /* Dark Slate Blue */
     --sandy: #F7B074;   /* Sandy Orange */
@@ -544,7 +551,7 @@ section {
         min-height: 100vh;
         box-shadow: none !important;
         border: none !important;
-        padding: 1rem;
+        padding: 0.5rem;
     }
     
     /* Ensure body doesn't add scroll if card does */

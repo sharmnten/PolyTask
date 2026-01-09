@@ -48,14 +48,23 @@ function initTheme() {
 }
 
 function initNavigation() {
-    document.getElementById('prevDayBtn')?.addEventListener('click', () => {
-        adjustCurrentDay(-1);
-        loadAndRender();
-    });
-    document.getElementById('nextDayBtn')?.addEventListener('click', () => {
-        adjustCurrentDay(1);
-        loadAndRender();
-    });
+    // Calendar navigation
+    const prevBtn = document.getElementById('prevDayBtn') || document.getElementById('prevDay');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+             adjustCurrentDay(-1);
+             loadAndRender();
+        });
+    }
+
+    const nextBtn = document.getElementById('nextDayBtn') || document.getElementById('nextDay');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+             adjustCurrentDay(1);
+             loadAndRender();
+        });
+    }
+
     document.getElementById('todayBtn')?.addEventListener('click', () => {
         // Instant reset: Update state and re-render without page reload
         setCurrentDay(new Date());
