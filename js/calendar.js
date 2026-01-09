@@ -532,8 +532,14 @@ function renderCalendar(tasks) {
                 const gray = resolveColor('gray');
                 card.style.background = gray; card.style.color = textColorFor(gray);
                 fireConfetti();
+                
+                // Allow Undo
+                pushUndoAction({ type: 'update', id: it.id, oldPayload: { complete: false, color: it.color } });
+                
                 await updateUserTask(it.id, { complete: true, color: 'gray' });
                 await loadAndRender();
+                
+                showToast('Task completed!', 'success', { label: 'Undo', onClick: performUndo });
             } catch (e) {
                 console.error('Failed to complete task', e); btn.disabled = false;
             }
