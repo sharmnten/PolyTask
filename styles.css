@@ -535,9 +535,22 @@ section {
 
 /* Responsive: Stack layout for mobile */
 @media (max-width: 640px) {
-    /* Main container and card padding adjustments */
-    .container, .card.calendar-large {
-        padding: 0.5rem;
+    /* Full screen usage on mobile */
+    .card, .card.calendar-large {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        min-height: 100vh;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 1rem;
+    }
+    
+    /* Ensure body doesn't add scroll if card does */
+    body {
+        margin: 0;
+        background: var(--card-bg); /* Seamless transition */
     }
 
     /* Navigation row: stack buttons */
@@ -796,15 +809,6 @@ button:focus-visible, .btn:focus-visible, .icon-btn:focus-visible, input:focus-v
 /* Keyboard Keys */
 kbd { background: #eee; border-radius: 3px; border: 1px solid #b4b4b4; box-shadow: 0 1px 1px rgba(0,0,0,.2); color: #333; display: inline-block; font-size: .85em; font-weight: 700; line-height: 1; padding: 2px 4px; white-space: nowrap; }
 body.dark kbd { background: #333; border-color: #555; color: #eee; }
-/ * 
- 
- C o n f e t t i 
- 
- * / 
- 
- . c o n f e t t i 
- 
-   p o s i t i o n :   f i x e d ;   w i d t h :   8 p x ;   h e i g h t :   8 p x ;   z - i n d e x :   9 9 9 9 ;   p o i n t e r - e v e n t s :   n o n e ;   o p a c i t y :   0 . 8 ;   
  
  f a l l 
  

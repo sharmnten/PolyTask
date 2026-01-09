@@ -265,7 +265,7 @@
              const h = new Date().getHours();
              const timeGreet = h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
              const name = user.name || 'Friend';
-             document.getElementById('userGreeting').innerHTML = `${timeGreet}, <span style="color:var(--accent);">${name}</span>.`;
+             document.getElementById('userGreeting').innerHTML = `${timeGreet}, <span style="color:var(--accent);">${name}</span>`;
              
              // Date display
              const dateOpts = { weekday: 'long', month: 'long', day: 'numeric' };
