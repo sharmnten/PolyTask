@@ -1,0 +1,114 @@
+#editColor {
+    padding: 0;
+    margin: 0;
+}
+
+#editEventForm input {
+    text-align: left;
+}
+
+.complete-btn {
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0);
+    padding: 0px;
+    margin: 0px;
+    min-width: auto;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+}
+
+.complete-btn:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+.complete-btn.completed {
+    color: white;
+}
+
+#createTaskBtn-wrapper {
+    position: fixed;
+    right: 18px;
+    bottom: 28px;
+    width: 56px;
+    height: 56px;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    transition: bottom 0.2s ease-out;
+}
+
+#createTaskBtn-popup {
+    position: absolute;
+    bottom: 48px;
+    width: 28px;
+    height: 28px;
+    background-color: #d1d5db;
+    color: white;
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .35s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Smooth spring-like eased transition */
+    transition-delay: 0.05s;
+    opacity: 0;
+    transform: translateY(10px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+#createTaskBtn-wrapper:hover #createTaskBtn-popup {
+    opacity: 1;
+    transform: translateY(0);
+    bottom: 52px;
+    pointer-events: auto;
+}
+
+#createTaskBtn-popup:hover {
+    background-color: #e5e7eb;
+}
+
+#createTaskBtn{
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    font-weight: 700;
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(16,24,40,0.1);
+    background: none;
+    background-color: var(--mint);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: transform .12s ease, background-color .12s ease;
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    text-align: center;
+}
+
+#createTaskBtn svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    pointer-events: none;
+    color: white; /* fallback; uses currentColor in svg path */
+}
+#createTaskBtn:hover {
+    box-shadow: 0 10px 30px rgba(16,24,40,0.15);
+}
