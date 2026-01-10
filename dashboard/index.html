@@ -94,7 +94,7 @@
         </svg>
         My Tasks
       </a>
-      <div class="action-btn" onclick="document.getElementById('settingsModal').style.display='flex'">
+      <div class="action-btn" onclick="openSettings()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3" />
           <path
@@ -111,23 +111,53 @@
   </footer>
 
   <!-- Settings Modal -->
-  <div id="settingsModal"
-    style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:2000;">
-    <div class="card" style="width:400px; max-width:90%;">
-      <h2>Settings</h2>
-      <div style="margin:1rem 0;">
-        <h3>Appearance</h3>
-        <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-          <input type="checkbox" id="darkModeToggle"> Dark Mode
-        </label>
-        <h3>Data</h3>
-        <button class="btn btn-outline" onclick="handleClearCompleted()" style="width:100%; margin-bottom:1rem; border-color:var(--border-color);">Clear Completed Tasks</button>
-        <h3>Account</h3>
-        <button class="btn btn-outline" onclick="PolyTask.logout()">Sign Out</button>
+  <div
+    id="settingsModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true"
+    aria-labelledby="settingsTitle"
+  >
+    <div class="modal_panel" role="document">
+      <div class="modal_header">
+        <div>
+          <h2 id="settingsTitle" class="modal_title">Settings</h2>
+          <p class="modal_subtitle">Personalize PolyTask</p>
+        </div>
+        <button type="button" class="icon-btn modal_close" onclick="closeSettings()" aria-label="Close settings">×</button>
       </div>
-      <div style="display:flex;justify-content:flex-end;">
-        <button class="btn" onclick="document.getElementById('settingsModal').style.display='none'"
-          style="width:auto; padding: 0.5rem 1.5rem;">Close</button>
+
+      <div class="modal_body">
+        <section class="settings-section" aria-labelledby="settingsAppearance">
+          <h3 id="settingsAppearance">Appearance</h3>
+          <label class="settings-row">
+            <span class="settings-row_text">
+              <span class="settings-label">Dark mode</span>
+              <span class="settings-help">Reduce eye strain in low light.</span>
+            </span>
+            <span class="switch">
+              <input type="checkbox" id="darkModeToggle" aria-label="Toggle dark mode">
+              <span class="switch_track" aria-hidden="true"></span>
+              <span class="switch_thumb" aria-hidden="true"></span>
+            </span>
+          </label>
+        </section>
+
+        <section class="settings-section" aria-labelledby="settingsData">
+          <h3 id="settingsData">Data</h3>
+          <p class="settings-help" style="margin-top:-0.25rem;">Clean up tasks you’ve already finished.</p>
+          <button class="btn-outline settings-danger" type="button" onclick="handleClearCompleted()">Clear completed tasks</button>
+        </section>
+
+        <section class="settings-section" aria-labelledby="settingsAccount">
+          <h3 id="settingsAccount">Account</h3>
+          <button class="btn-outline settings-btn" type="button" onclick="PolyTask.logout()">Sign out</button>
+        </section>
+      </div>
+
+      <div class="modal_footer">
+        <button class="btn" type="button" onclick="closeSettings()" style="width:auto;">Done</button>
       </div>
     </div>
   </div>
@@ -159,6 +189,30 @@
         btn.disabled = false;
       }
     }
+
+    function openSettings() {
+      const modal = document.getElementById('settingsModal');
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeSettings() {
+      const modal = document.getElementById('settingsModal');
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    // Close modal on backdrop click / Escape
+    document.addEventListener('click', (e) => {
+      const modal = document.getElementById('settingsModal');
+      if (!modal?.classList.contains('is-open')) return;
+      if (e.target === modal) closeSettings();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const modal = document.getElementById('settingsModal');
+      if (modal?.classList.contains('is-open')) closeSettings();
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Init PolyTask

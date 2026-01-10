@@ -222,3 +222,60 @@
     margin-bottom: 0.25rem;
   }
 }
+
+.settings-section {
+  padding: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card-bg) 92%, var(--bg) 8%);
+  width: 100%;
+}
+
+.settings-section h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+}
+
+.settings-row_text {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.settings-label {
+  font-weight: 650;
+  color: var(--primary);
+}
+
+.settings-help {
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.settings-danger {
+  border-color: color-mix(in srgb, var(--coral) 30%, var(--border-color) 70%);
+  color: var(--coral);
+  transition: 0.2s ease
+}
+
+.settings-btn {
+    transition: 0.2s ease
+}
+
+.settings-btn:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent 90%);
+}
+
+.settings-danger:hover {
+  background: color-mix(in srgb, var(--coral) 10%, transparent 90%);
+}

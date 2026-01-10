@@ -92,6 +92,10 @@ function initHotkeys(taskModalOpen) {
         if (e.key === 'Escape') {
              // Close any open modal
              document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+             document.querySelectorAll('.modal.is-open').forEach(m => {
+                 m.classList.remove('is-open');
+                 m.setAttribute('aria-hidden', 'true');
+             });
         }
     });
 }

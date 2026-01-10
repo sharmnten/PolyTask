@@ -323,8 +323,12 @@
     }
 
     /* Modal adjustments */
-    #taskModal .card {
-        width: 90% !important;
-        max-width: 360px;
+    .modal {
+        padding: 0.75rem;
+    }
+
+    .modal_panel {
+        width: 100% !important;
+        max-width: 100% !important;
     }
 }

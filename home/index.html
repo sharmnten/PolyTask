@@ -137,8 +137,13 @@
           </div>
 
           <div class="actions-wrapper" style="position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px;">
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input type="checkbox" id="repeatWeekly" checked /> Repeat weekly
+            <label class="switch-row">
+              <span class="switch-row_text">Repeat weekly</span>
+              <span class="switch">
+                <input type="checkbox" id="repeatWeekly" checked aria-label="Repeat weekly">
+                <span class="switch_track" aria-hidden="true"></span>
+                <span class="switch_thumb" aria-hidden="true"></span>
+              </span>
             </label>
             <div class="actions" style="display:flex;gap:.5rem;justify-content:flex-end;">
             <button type="button" id="cancelSchedule" class="btn-outline">Cancel</button>
@@ -193,12 +198,22 @@
               <label for="editCategory">Category</label>
             </div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input id="editRepeatWeekly" type="checkbox" /> Repeat weekly
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:12px;flex-wrap:wrap;">
+            <label class="switch-row">
+              <span class="switch-row_text">Repeat weekly</span>
+              <span class="switch">
+                <input id="editRepeatWeekly" type="checkbox" aria-label="Repeat weekly">
+                <span class="switch_track" aria-hidden="true"></span>
+                <span class="switch_thumb" aria-hidden="true"></span>
+              </span>
             </label>
-            <label style="display:flex;align-items:center;gap:8px;">
-              <input id="editCompleted" type="checkbox" /> Completed
+            <label class="switch-row">
+              <span class="switch-row_text">Completed</span>
+              <span class="switch">
+                <input id="editCompleted" type="checkbox" aria-label="Completed">
+                <span class="switch_track" aria-hidden="true"></span>
+                <span class="switch_thumb" aria-hidden="true"></span>
+              </span>
             </label>
           </div>
           <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:12px;">
