@@ -1,5 +1,9 @@
 /* Tasks page specific styling (moved from inline <style> in tasks/index.html) */
 
+h1 {
+    color: var(--dark-cyan);
+}
+
 .filters-row {
   display: flex;
   gap: 0.5rem;
