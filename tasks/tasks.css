@@ -1,5 +1,3 @@
-/* Tasks page specific styling (moved from inline <style> in tasks/index.html) */
-
 h1 {
     color: var(--dark-cyan);
 }

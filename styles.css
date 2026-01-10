@@ -29,6 +29,7 @@
 }
 
 /* Dark Mode Overrides */
+:root.dark,
 body.dark {
     --bg: #0f172a;
     --card-bg: #1e293b;
@@ -43,25 +44,38 @@ body.dark {
     --violet: #c084fc;
 }
 
-body.dark .task-item, 
-body.dark .card, 
+:root.dark .task-item,
+body.dark .task-item,
+:root.dark .card,
+body.dark .card,
+:root.dark .stat-card,
 body.dark .stat-card,
+:root.dark .action-card,
 body.dark .action-card,
+:root.dark .smart-add-box,
 body.dark .smart-add-box,
+:root.dark .nav-tab.active,
 body.dark .nav-tab.active {
     background: var(--card-bg);
     border-color: #334155;
     color: #f1f5f9;
 }
-body.dark .smart-add-box input, body.dark input { color: white; }
 
+:root.dark .smart-add-box input,
+body.dark .smart-add-box input,
+:root.dark input,
+body.dark input { color: white; }
+
+:root.dark .input-wrapper input,
 body.dark .input-wrapper input,
+:root.dark .input-wrapper select,
 body.dark .input-wrapper select {
     background: #0f172a; 
     border-color: #334155;
     color: white;
 }
 
+html { background-color: var(--bg); }
 body {
     margin: 0;
     padding: 0;
