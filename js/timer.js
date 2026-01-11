@@ -1,5 +1,5 @@
 
-import { showToast, fireConfetti } from './ui.js';
+import { showToast, fireConfetti, playSound, vibrate } from './ui.js';
 
 let focusTask = null;
 let focusInterval = null;
@@ -33,6 +33,8 @@ export function startFocusMode(task) {
         showToast('Focus session already active', 'info');
         return;
     }
+    playSound('success'); // Start sound
+    vibrate(50);
     focusTask = task;
     focusSeconds = focusDurationInitial;
     
@@ -94,12 +96,13 @@ export function endFocusSession(completed = false) {
 
     if (completed) {
         fireConfetti();
-        const snd = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU'); // dummy or real sound
-        // Real sound not included to save space, but you can add one.
+        // Notification API check
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('Focus Session Complete', { body: 'Great job! Take a break.' });
         }
         showToast('Focus session complete!', 'success');
+    } else {
+        playSound('click'); // Manual stop
     }
 
     focusTask = null;

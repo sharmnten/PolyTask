@@ -48,6 +48,10 @@ export function parseSmartInput(text) {
     let addedDays = 0;
     if (lower.includes('tomorrow') || lower.includes('tmrw')) {
         addedDays = 1; result.title = result.title.replace(/tomorrow|tmrw/i, '');
+    } else if (lower.includes('next week')) { // Simple extension for "next week" (Monday)
+        const day = now.getDay();
+        addedDays = (day === 0 ? 1 : 8 - day); // If Sun, tmrw. Else, next Mon.
+        result.title = result.title.replace(/next week/i, '');
     } else if (lower.includes('today')) {
         addedDays = 0; result.title = result.title.replace(/today/i, '');
     } else {

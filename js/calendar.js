@@ -2,6 +2,7 @@
 import { 
     listUserTasks, 
     updateUserTask, 
+    createUserTask,
     categorizeTasks 
 } from './tasks.js';
 import { 
@@ -72,8 +73,7 @@ export async function performUndo() {
         if (action.type === 'update') {
             await updateUserTask(action.id, action.oldPayload);
         } else if (action.type === 'delete') {
-            // Complex to undo delete without full payload. 
-            // For now, if we support delete undo, we assume payload was saved.
+            await createUserTask(action.oldPayload);
         }
         await loadAndRender();
         showToast('Undone', 'success');
@@ -84,6 +84,14 @@ export async function performUndo() {
 }
 
 
+
+function resolveId(id) {
+    if (typeof id === 'string' && id.startsWith('virt-')) {
+        const parts = id.split('-');
+        if (parts.length >= 2) return parts[1];
+    }
+    return id;
+}
 
 export async function loadAndRender() {
     const calendarEl = document.getElementById('calendar');
@@ -460,11 +468,11 @@ function renderCalendar(tasks) {
             if (!it.completed) {
                 card.draggable = true;
                 card.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', it.id);
+                    e.dataTransfer.setData('text/plain', resolveId(it.id));
                     const rect = card.getBoundingClientRect();
                     e.dataTransfer.setData('offset', e.clientY - rect.top);
                     e.dataTransfer.effectAllowed = 'move';
-                    pushUndoAction({ type: 'update', id: it.id, oldPayload: { assigned: it.assigned, estimated_time: duration } });
+                    pushUndoAction({ type: 'update', id: resolveId(it.id), oldPayload: { assigned: it.assigned, estimated_time: duration } });
                     
                     const dragImage = card.cloneNode(true);
                     dragImage.style.top = '-9999px'; dragImage.style.left = '-9999px';
@@ -482,7 +490,7 @@ function renderCalendar(tasks) {
                 card.appendChild(handle);
                 handle.addEventListener('mousedown', (e) => {
                     e.stopPropagation(); e.preventDefault();
-                    pushUndoAction({ type: 'update', id: it.id, oldPayload: { assigned: it.assigned, estimated_time: duration } });
+                    pushUndoAction({ type: 'update', id: resolveId(it.id), oldPayload: { assigned: it.assigned, estimated_time: duration } });
                     const startPageY = e.pageY;
                     const startH = height;
                     let scrollSpeed = 0; let rafId = null;
@@ -513,7 +521,8 @@ function renderCalendar(tasks) {
                         const snapped = Math.max(1, Math.round(exactMins));
                         if (snapped !== duration) {
                             try {
-                                await updateUserTask(it.id, { estimated_time: snapped });
+                                const realId = resolveId(it.id);
+                                await updateUserTask(realId, { estimated_time: snapped });
                                 await loadAndRender();
                                 showToast('Duration updated', 'success');
                             } catch (err) { showToast('Resize failed', 'error'); await loadAndRender(); }
@@ -533,10 +542,11 @@ function renderCalendar(tasks) {
                 card.style.background = gray; card.style.color = textColorFor(gray);
                 fireConfetti();
                 
+                const realId = resolveId(it.id);
                 // Allow Undo
-                pushUndoAction({ type: 'update', id: it.id, oldPayload: { complete: false, color: it.color } });
+                pushUndoAction({ type: 'update', id: realId, oldPayload: { complete: false, color: it.color } });
                 
-                await updateUserTask(it.id, { complete: true, color: 'gray' });
+                await updateUserTask(realId, { complete: true, color: 'gray' });
                 await loadAndRender();
                 
                 showToast('Task completed!', 'success', { label: 'Undo', onClick: performUndo });

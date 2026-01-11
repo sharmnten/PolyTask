@@ -213,9 +213,12 @@
               <input id="editCompleted" type="checkbox" /> Completed
             </label>
           </div>
-          <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:12px;">
-            <button type="button" id="cancelEditEvent" class="btn-outline">Cancel</button>
-            <button type="submit" class="btn">Save</button>
+          <div style="display:flex;gap:.5rem;justify-content:space-between;margin-top:12px;">
+            <button type="button" id="deleteEventBtn" class="btn-outline" style="color:var(--coral);border-color:var(--coral);">Delete</button>
+            <div style="display:flex;gap:.5rem;">
+                <button type="button" id="cancelEditEvent" class="btn-outline">Cancel</button>
+                <button type="submit" class="btn">Save</button>
+            </div>
           </div>
         </form>
       </div>
