@@ -12,7 +12,7 @@ import {
     formatDateISO, 
     startOfDay 
 } from './ui.js';
-import { getCurrentDay, loadAndRender, pushUndoAction, performUndo } from './calendar.js';
+import { getCurrentDay, loadAndRender } from './calendar.js';
 import { parseSmartInput } from './parser.js';
 
 function parseHHMM(str) {
@@ -220,15 +220,12 @@ export function initEditModal() {
     const editColor = document.getElementById('editColor');
     const editRepeatWeekly = document.getElementById('editRepeatWeekly');
     const editCompleted = document.getElementById('editCompleted');
-    const deleteEventBtn = document.getElementById('deleteEventBtn');
-    let currentTaskContext = null;
 
     function pad2(n) { return String(n).padStart(2, '0'); }
     function closeEditModal() { if (editEventModal) editEventModal.style.display = 'none'; }
     if (cancelEditEventBtn) cancelEditEventBtn.addEventListener('click', closeEditModal);
 
     function openGeneralEditModal(task) {
-        currentTaskContext = task;
         if (!editEventModal) return;
         const id = String(task.id || '');
         let realId = id;
@@ -248,51 +245,6 @@ export function initEditModal() {
         if (editRepeatWeekly) editRepeatWeekly.checked = !!task.repeat;
         if (editCompleted) editCompleted.checked = !!task.completed;
         editEventModal.style.display = 'flex';
-    }
-
-    if (deleteEventBtn) {
-        deleteEventBtn.addEventListener('click', async () => {
-            if (!currentTaskContext || !currentTaskContext.id) return;
-            if (!confirm('Delete this event?')) return;
-            
-            const realId = currentTaskContext.id; // virtual id handling inside delete? No, deleteUserTask needs real ID.
-            let docId = realId;
-            if(realId.startsWith('virt-')) {
-                 // Cannot delete virtual instance of recurring task easily without logic. 
-                 // Assuming user wants to delete the SOURCE doc if they edit it? 
-                 // For now, let's extract the real ID from the virtual one if possible.
-                 const parts = realId.split('-');
-                 // virt-ID-DATE
-                 if (parts.length >= 3) {
-                     docId = parts[1]; // simplified assumption
-                 }
-            }
-
-            try {
-                // Prepare restore payload
-                const oldPayload = {
-                     name: currentTaskContext.title,
-                     assigned: currentTaskContext.assigned, // original assigned
-                     due: currentTaskContext.assigned, // approximation
-                     estimated_time: currentTaskContext.estimateMinutes,
-                     priority: currentTaskContext.priority,
-                     category: currentTaskContext.category,
-                     color: currentTaskContext.color,
-                     repeat: currentTaskContext.repeat,
-                     complete: currentTaskContext.completed
-                };
-
-                await deleteUserTask(docId);
-                closeEditModal();
-                
-                pushUndoAction({ type: 'delete', id: docId, oldPayload: oldPayload });
-                await loadAndRender();
-                showToast('Event deleted', 'success', { label: 'Undo', onClick: performUndo });
-            } catch (err) {
-                console.error('Delete failed', err);
-                showToast('Could not delete event', 'error');
-            }
-        });
     }
 
     if (editEventForm) {
@@ -331,65 +283,6 @@ export function initEditModal() {
 
     return { openGeneralEditModal };
 }
-
-export function setupSmartInputFeedback(inputEl, onParse = null, customContainer = null) {
-    if (!inputEl) return;
-    
-    // Real-time visual feedback for smart parsing
-    let feedbackEl = customContainer;
-    
-    if (!feedbackEl) {
-        feedbackEl = document.createElement('div');
-        feedbackEl.style.fontSize = '0.75rem';
-        feedbackEl.style.color = 'var(--primary)';
-        feedbackEl.style.marginTop = '-0.5rem';
-        feedbackEl.style.marginBottom = '0.75rem';
-        feedbackEl.style.height = '1.2rem'; // reserve space
-        feedbackEl.style.transition = 'opacity 0.2s ease';
-        feedbackEl.style.opacity = '0';
-        feedbackEl.style.pointerEvents = 'none';
-
-        if (inputEl.parentNode) {
-            inputEl.parentNode.insertBefore(feedbackEl, inputEl.nextSibling);
-        }
-    } else {
-        // Ensure some base styles or transition if custom container provided
-        feedbackEl.style.transition = 'opacity 0.2s ease';
-        feedbackEl.style.opacity = '0';
-    }
-
-    inputEl.addEventListener('input', () => {
-         const val = inputEl.value;
-         if (!val) { 
-             feedbackEl.textContent = ''; 
-             feedbackEl.style.opacity = '0';
-             return; 
-         }
-         const parsed = parseSmartInput(val);
-         if (parsed.date || parsed.time || parsed.duration) {
-             const d = parsed.date ? `📅 ${parsed.date}` : '';
-             const t = parsed.time ? `🕒 ${parsed.time}` : '';
-             const m = parsed.duration ? `⏳ ${parsed.duration}m` : '';
-             feedbackEl.textContent = `Interpreted: ${d} ${t} ${m}`.trim();
-             feedbackEl.style.opacity = '1';
-         } else {
-             feedbackEl.textContent = '';
-             feedbackEl.style.opacity = '0';
-         }
-    });
-
-    if (onParse) {
-        inputEl.addEventListener('change', () => {
-            const val = inputEl.value;
-            if (!val) return;
-            const parsed = parseSmartInput(val);
-            onParse(parsed);
-            feedbackEl.textContent = '';
-            feedbackEl.style.opacity = '0';
-        });
-    }
-}
-
 // --- Create Task Modal ---
 export function initTaskModal() {
     const createBtn = document.getElementById('createTaskBtn'); 
@@ -419,18 +312,20 @@ export function initTaskModal() {
     
     const smartInput = document.getElementById('smartInput');
     if (smartInput) {
-        setupSmartInputFeedback(smartInput, (parsed) => {
+        smartInput.addEventListener('change', () => {
+            const val = smartInput.value;
+            if (!val) return;
+            const parsed = parseSmartInput(val);
             if (parsed.title) document.getElementById('taskTitle').value = parsed.title;
             if (parsed.date) document.getElementById('taskDueDate').value = parsed.date;
             if (parsed.time) document.getElementById('taskAssignedTime').value = parsed.time;
             if (parsed.duration) document.getElementById('taskEstimateMinutes').value = parsed.duration;
         });
-
         smartInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 smartInput.blur();
-                // move focus to next logical place
+                document.getElementById('taskTitle').focus();
             }
         });
     }

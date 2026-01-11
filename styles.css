@@ -809,22 +809,3 @@ button:focus-visible, .btn:focus-visible, .icon-btn:focus-visible, input:focus-v
 /* Keyboard Keys */
 kbd { background: #eee; border-radius: 3px; border: 1px solid #b4b4b4; box-shadow: 0 1px 1px rgba(0,0,0,.2); color: #333; display: inline-block; font-size: .85em; font-weight: 700; line-height: 1; padding: 2px 4px; white-space: nowrap; }
 body.dark kbd { background: #333; border-color: #555; color: #eee; }
-
-/* Priority Styles */
-.event-card[data-priority="high"] { border-left: 4px solid var(--coral) !important; padding-left: 6px !important; }
-.event-card[data-priority="medium"] { border-left: 4px solid var(--sandy) !important; padding-left: 6px !important; }
-.event-card[data-priority="low"] { border-left: 4px solid var(--mint) !important; padding-left: 6px !important; }
-
-/* Badges */
-.badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; }
-.badge.high { background: color-mix(in srgb, var(--coral) 15%, transparent); color: var(--coral); }
-.badge.medium { background: color-mix(in srgb, var(--sandy) 15%, transparent); color: var(--sandy); }
-.badge.low { background: color-mix(in srgb, var(--mint) 15%, transparent); color: var(--mint); }
-
-/* Toggle Switch */
-.toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-input:checked + .slider { background-color: var(--primary); }
-input:checked + .slider:before { transform: translateX(20px); }

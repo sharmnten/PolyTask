@@ -1,65 +1,8 @@
 
 // --- small helpers --------------------------------------------------
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-function isAudioEnabled() {
-    return localStorage.getItem('settings_audio') !== 'false';
-}
-
-function isHapticsEnabled() {
-    return localStorage.getItem('settings_haptics') !== 'false';
-}
-
-export function playSound(type) {
-    if (!isAudioEnabled()) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    if (type === 'success') {
-        // High pitch cheerful ping
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-    } else if (type === 'error') {
-        // Low pitch boop
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.2);
-    } else if (type === 'click') {
-        // Very short blip
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.05);
-    }
-}
-
-export function vibrate(pattern) {
-    if (!isHapticsEnabled()) return;
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(pattern);
-    }
-}
-
 export function fireConfetti() {
-    vibrate([50, 50, 50]); // Tactile feedback
-    playSound('success');  // Audio feedback
     const colors = ['#EF6F6C', '#465775', '#F7B074', '#FFF07C', '#ACDD91', '#59C9A5'];
     for (let i = 0; i < 40; i++) {
-
         const el = document.createElement('div');
         el.className = 'confetti';
         // Random start position near top (rain effect)
@@ -77,24 +20,12 @@ export function fireConfetti() {
 }
 
 export function showToast(message, type = 'info', action = null) {
-    // Haptic & Audio feedback
-    if (type === 'error') { vibrate([50, 100, 50]); playSound('error'); }
-    else if (type === 'success') { vibrate(50); playSound('success'); }
-    else { playSound('click'); }
-
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
         document.body.appendChild(container);
     }
-    
-    // Stack limit: Remove oldest if too many
-    const maxToasts = 3;
-    while (container.children.length >= maxToasts) {
-        container.children[0].remove();
-    }
-
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     
