@@ -268,10 +268,19 @@ window.PolyTask = {
     },
     updateFocusWidget: function() {
         const display = document.getElementById('focusDisplay');
+        const ring = document.getElementById('focusRing');
         if (!display) return;
+        
         const m = Math.floor(this.focusState.timeLeft / 60);
         const s = this.focusState.timeLeft % 60;
         display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        
+        if (ring) {
+            const total = 377; // Circumference for r=60
+            const progress = this.focusState.timeLeft / this.focusState.defaultTime;
+            const offset = total - (progress * total);
+            ring.style.strokeDashoffset = offset;
+        }
     }
 };
 

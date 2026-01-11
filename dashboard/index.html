@@ -64,16 +64,24 @@
       </div>
 
       <!-- Focus Widget integrated into grid -->
-      <div class="stat-box focus-widget">
-        <div>
-          <h3 style="margin-bottom:0;">Focus Session</h3>
-          <span id="focusDisplay" style="font-family:monospace; font-size:1.5rem; font-weight:700;">25:00</span>
+      <div class="stat-box focus-widget" style="grid-column: span 2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.25rem; padding:1.5rem; text-align:center;">
+        <h3 style="margin:0; font-size:0.95rem; text-transform:uppercase; color:var(--muted); letter-spacing:1px; font-weight:600;">Focus Timer</h3>
+        
+        <div style="position:relative; width:140px; height:140px; flex-shrink:0;">
+            <svg width="140" height="140" viewBox="0 0 140 140" style="transform: rotate(-90deg); overflow:visible;">
+                <circle cx="70" cy="70" r="60" fill="none" stroke="var(--border-color)" stroke-width="8"></circle>
+                <circle id="focusRing" cx="70" cy="70" r="60" fill="none" stroke="var(--accent)" stroke-width="8" 
+                        stroke-dasharray="377" stroke-dashoffset="0" stroke-linecap="round"
+                        style="transition: stroke-dashoffset 1s linear;"></circle>
+            </svg>
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); display:flex; align-items:center; justify-content:center;">
+                 <div id="focusDisplay" style="font-family:'Segoe UI Mono', monospace; font-size:2.2rem; font-weight:700; color:var(--primary); letter-spacing:-1px;">25:00</div>
+            </div>
         </div>
-        <div style="display:flex; gap:0.5rem;">
-          <button class="btn primary" onclick="PolyTask.toggleFocus()"
-            style="padding:0.5rem 1.5rem; width:auto;">Start</button>
-          <button class="btn-outline" onclick="PolyTask.resetFocus()"
-            style="padding:0.5rem 1rem; width:auto;">Reset</button>
+        
+        <div style="display:flex; gap:0.75rem; justify-content:center; width:100%;">
+             <button class="btn primary" onclick="PolyTask.toggleFocus()" style="padding:0.5rem 1.75rem; min-width:100px; font-size:1rem;">Start</button>
+             <button class="btn-outline" onclick="PolyTask.resetFocus()" style="padding:0.5rem 1.75rem; min-width:100px; font-size:1rem;">Reset</button>
         </div>
       </div>
     </div>
