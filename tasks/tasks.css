@@ -41,6 +41,20 @@ h1 {
   text-decoration: line-through;
 }
 
+.task-item.overdue {
+  border-color: #ff4444;
+  animation: pulse-red 2s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 68, 68, 0);
+  }
+}
+
 .checkbox-round {
   width: 22px;
   height: 22px;

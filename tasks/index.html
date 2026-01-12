@@ -104,7 +104,11 @@
           list.innerHTML = '';
           sorted.forEach(t => {
               const el = document.createElement('div');
-              el.className = `task-item ${t.complete ? 'completed' : ''}`;
+              
+              // Check if task is overdue
+              const isOverdue = !t.complete && t.due && new Date(t.due) < new Date();
+              
+              el.className = `task-item ${t.complete ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`;
               
               const priorityClass = (t.priority || 'medium').toLowerCase();
               const dateStr = t.due ? new Date(t.due).toLocaleDateString() : '';
