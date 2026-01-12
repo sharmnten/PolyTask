@@ -45,6 +45,25 @@ export function parseSmartInput(text) {
         }
     }
 
+    // Priority Parsing (!high, !medium, !low or !urgent)
+    const prioRegex = /!(high|urgent|medium|low|normal)\b/i;
+    const prioMatch = text.match(prioRegex);
+    if (prioMatch) {
+        const p = prioMatch[1].toLowerCase();
+        if (p === 'urgent') result.priority = 'high';
+        else if (p === 'normal') result.priority = 'medium';
+        else result.priority = p;
+        result.title = result.title.replace(prioMatch[0], '');
+    }
+
+    // Category Parsing (#tag)
+    const catRegex = /#(\w+)\b/i;
+    const catMatch = text.match(catRegex);
+    if (catMatch) {
+        result.category = catMatch[1].toLowerCase();
+        result.title = result.title.replace(catMatch[0], '');
+    }
+
     let addedDays = 0;
     if (lower.includes('tomorrow') || lower.includes('tmrw')) {
         addedDays = 1; result.title = result.title.replace(/tomorrow|tmrw/i, '');

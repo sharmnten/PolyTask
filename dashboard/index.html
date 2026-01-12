@@ -15,6 +15,7 @@
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><style>path{fill:%23465775}@media(prefers-color-scheme:dark){path{fill:%23a5b4fc}}</style><path d='M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 12l-10-5v2l10 5 10-5v-2l-2.5 1.25L12 11zm0 5l2.5-1.25L12 17l-10-5v2l10 5 10-5v-2l-2.5 1.25L12 16z'/></svg>">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="./dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script>window.APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';</script>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
   <script type="module" src="../js/main.js"></script>
@@ -43,6 +44,20 @@
     <div class="insight-card">
       <h2 id="motivationalMessage">Welcome back.</h2>
       <p style="opacity:0.9; margin:0;" id="taskSummary">Checking your schedule...</p>
+    </div>
+
+    <!-- Quick Add Task -->
+    <div style="margin-bottom:2rem; padding:0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+             <input type="text" id="quickTaskInput" placeholder="Quick add task... (e.g. 'Read docs for 30m !high #work')" 
+               style="flex:1; height:48px; border:1px solid var(--border-color); border-radius:8px; outline:none; font-size:1rem; background:var(--bg); color:var(--primary); padding:0 0.8rem; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+             <button id="quickAddBtn" class="btn primary" style="height:48px; width:48px; min-width:unset; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px;">
+                 <i class="fas fa-plus"></i>
+             </button>
+        </div>
+        <p style="font-size:0.75rem; color:var(--muted); margin:0 0 0 0.5rem; opacity:0.8;">
+           Tip: Use <b>!high</b> for priority, <b>#tag</b> for category, <b>30m</b> for duration.
+        </p>
     </div>
 
     <div class="stats-grid">
@@ -83,6 +98,25 @@
              <button class="btn primary" onclick="PolyTask.toggleFocus()" style="padding:0.5rem 1.75rem; min-width:100px; font-size:1rem;">Start</button>
              <button class="btn-outline" onclick="PolyTask.resetFocus()" style="padding:0.5rem 1.75rem; min-width:100px; font-size:1rem;">Reset</button>
         </div>
+      </div>
+    </div>
+
+    <h3 style="color:var(--muted); margin:1rem 0 0.75rem;">Analytics</h3>
+    <div class="analytics-grid">
+      <div class="analytics-card">
+        <div class="analytics-label">Time This Week</div>
+        <div class="analytics-value" id="anTimeWeek">-</div>
+        <div class="analytics-sub" id="anTopCategory">Top category —</div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-label">Weekly Completion</div>
+        <div class="analytics-value" id="anCompletion">-</div>
+        <div class="analytics-sub" id="anCompletedCount">Completed —</div>
+      </div>
+      <div class="analytics-card">
+        <div class="analytics-label">Planned vs Done</div>
+        <div class="analytics-bar"><span id="anPlannedBar"></span></div>
+        <div class="analytics-sub" id="anPlannedCopy">--</div>
       </div>
     </div>
 
@@ -268,6 +302,57 @@
           return d >= startOb && d <= endOb;
         });
         const recentCompleted = recentTasks.filter(t => t.complete).length;
+
+        // Analytics: weekly window (Mon-Sun based on local)
+        const weekStart = new Date();
+        weekStart.setHours(0,0,0,0);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday=0
+        const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+
+        const durationOf = (t) => {
+          if (typeof t.estimated_time === 'number' && t.estimated_time > 0) return t.estimated_time;
+          if (typeof t.estimateMinutes === 'number' && t.estimateMinutes > 0) return t.estimateMinutes;
+          return 30;
+        };
+
+        const dateOf = (t) => {
+          if (t.assigned) return new Date(t.assigned);
+          if (t.due) return new Date(t.due);
+          return null;
+        };
+
+        const inWeek = tasks.filter(t => {
+          const d = dateOf(t);
+          return d && d >= weekStart && d < weekEnd;
+        });
+
+        const totalMinutesWeek = inWeek.reduce((sum, t) => sum + durationOf(t), 0);
+        const doneMinutesWeek = inWeek.filter(t => t.complete).reduce((sum, t) => sum + durationOf(t), 0);
+        const completedCountWeek = inWeek.filter(t => t.complete).length;
+
+        // Top category by total minutes this week
+        const catMap = new Map();
+        inWeek.forEach(t => {
+          const cat = t.category || 'General';
+          catMap.set(cat, (catMap.get(cat) || 0) + durationOf(t));
+        });
+        let topCat = 'General';
+        let topCatMinutes = 0;
+        catMap.forEach((v, k) => { if (v > topCatMinutes) { topCatMinutes = v; topCat = k; } });
+
+        // Planned vs Done percentage
+        const planDonePct = totalMinutesWeek ? Math.min(100, Math.round((doneMinutesWeek / totalMinutesWeek) * 100)) : 0;
+
+        // Update analytics UI
+        const fmtHours = (mins) => (mins / 60).toFixed(1) + 'h';
+        const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setText('anTimeWeek', totalMinutesWeek ? fmtHours(totalMinutesWeek) : '0.0h');
+        setText('anTopCategory', `Top category — ${topCat} (${fmtHours(topCatMinutes)})`);
+        setText('anCompletion', `${planDonePct}%`);
+        setText('anCompletedCount', `Completed — ${completedCountWeek} tasks`);
+        setText('anPlannedCopy', totalMinutesWeek ? `${fmtHours(doneMinutesWeek)} done / ${fmtHours(totalMinutesWeek)} planned` : 'No planned time yet');
+        const bar = document.getElementById('anPlannedBar');
+        if (bar) bar.style.width = `${planDonePct}%`;
 
         document.getElementById('statPending').textContent = pending.length;
         document.getElementById('statToday').textContent = dueToday.length;

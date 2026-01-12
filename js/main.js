@@ -125,6 +125,88 @@ function isAuthPage() {
     return window.location.href.includes('/login/') || window.location.href.includes('/signup/');
 }
 
+function initQuickAdd() {
+    const input = document.getElementById('quickTaskInput');
+    const btn = document.getElementById('quickAddBtn');
+    if (!input || !btn) return;
+
+    const handleAdd = async () => {
+        const val = input.value.trim();
+        if (!val) return;
+        
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+
+        try {
+            const parsed = parseSmartInput(val);
+            // Default to today if no specific date mentioned
+            const today = new Date().toISOString().slice(0, 10);
+            const dateToUse = parsed.date || today;
+
+            const data = {
+                name: parsed.title,
+                due: dateToUse,
+                estimateMinutes: parsed.duration || 30, // Default 30 min for quick tasks
+                priority: parsed.priority || 'medium',
+                complete: false,
+                category: parsed.category || null
+            };
+            
+            await createUserTask(data);
+            showToast('Task added!', 'success');
+            input.value = '';
+            
+            // Reload to update stats and lists
+            setTimeout(() => window.location.reload(), 500);
+
+        } catch (err) {
+            console.error(err);
+            showToast('Error adding task', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    };
+
+    btn.addEventListener('click', handleAdd);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleAdd();
+    });
+}
+
+// --- Smart Reminders ------------------------------------------------
+const reminderState = { timer: null, notified: new Set() };
+function startSmartReminders() {
+    if (reminderState.timer) return;
+    const poll = async () => {
+        let tasks = [];
+        try { tasks = await listUserTasks(); } catch (e) { return; }
+        const now = new Date();
+        const leadMinutes = 15; // remind 15 minutes before start
+        const graceMinutes = 5; // keep reminding a few minutes after start if missed
+
+        tasks.forEach(t => {
+            if (t.complete || !t.assigned) return;
+            const start = new Date(t.assigned);
+            if (isNaN(start)) return;
+            const diff = (start - now) / 60000; // minutes
+            if (diff <= leadMinutes && diff >= -graceMinutes) {
+                const id = t.$id || t.id || t.name;
+                if (reminderState.notified.has(id)) return;
+                reminderState.notified.add(id);
+                const timeStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                showToast(`Starts soon: ${t.name || 'Task'} @ ${timeStr}`, 'info', {
+                    label: 'Open planner',
+                    onClick: () => { window.location.href = '../calendar/index.html'; }
+                });
+            }
+        });
+    };
+    reminderState.timer = setInterval(poll, 60 * 1000);
+    poll();
+}
+
 async function runApp() {
     console.log('Starting PolyTask...');
     initTheme();
@@ -187,6 +269,8 @@ async function runApp() {
             } catch (e) { console.warn('Modal init failed', e); }
 
             initTimer();
+            initQuickAdd();
+            startSmartReminders();
 
             // Run calendar render only if calendar element exists, otherwise simple data init is enough
             if (document.getElementById('calendar')) {

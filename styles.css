@@ -678,6 +678,33 @@ section {
 .toast.info { border-left-color: var(--dark-cyan); }
 .toast.fade-out { animation: fadeOut 0.3s ease-in forwards; }
 
+/* Dark mode toast polish */
+:root.dark #toast-container,
+body.dark #toast-container {
+    left: auto;
+    right: 20px;
+}
+:root.dark .toast,
+body.dark .toast {
+    background: #0f172a;
+    color: #e2e8f0;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+:root.dark .toast.success,
+body.dark .toast.success { border-left-color: #4ade80; }
+:root.dark .toast.error,
+body.dark .toast.error { border-left-color: #fb7185; }
+:root.dark .toast.info,
+body.dark .toast.info { border-left-color: #38bdf8; }
+:root.dark .toast button,
+body.dark .toast button {
+    border-color: rgba(255,255,255,0.35) !important;
+    color: #e2e8f0 !important;
+    background: rgba(255,255,255,0.06) !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04);
+}
+
 @keyframes slideIn {
     from { transform: translateX(-100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }

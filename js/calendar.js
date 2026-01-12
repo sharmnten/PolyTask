@@ -101,14 +101,18 @@ export async function loadAndRender() {
         calendarEl.classList.add('refreshing');
     }
     
-    // Categorize any tasks with null categories before loading
-    try {
-        await categorizeTasks();
-    } catch (err) {
-        console.error('Error categorizing tasks:', err);
-    }
+    // Categorize valid tasks in background to avoid blocking UI
+    categorizeTasks().then(() => {
+        // Optional: reload if categorization changed things significantly? 
+        // For now, let's silence it or use a subtle notification if needed.
+        // console.log('Background categorization complete');
+    }).catch(err => console.error('Background categorization error:', err));
     
     let docs = [];
+    
+    // Render empty grid immediately so user sees something while fetching
+    renderCalendar([]);
+
     try { docs = await listUserTasks(); } catch (err) { console.error('Could not list tasks', err); }
     let tasks = (docs || []).map(d => {
         const preferred = d.assigned || d.due; // prefer assigned; fallback to due
@@ -160,10 +164,27 @@ export async function loadAndRender() {
 function renderCalendar(tasks) {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
-    const byDate = {};
-    tasks.forEach(t => { if (!t.date) return; const key = t.date.slice(0,10); (byDate[key] || (byDate[key]=[])).push(t); });
-    const key = formatDateISO(currentDay);
     
+    // Day Overflow Logic: Filter tasks that overlap currentDay
+    const key = formatDateISO(currentDay);
+    const dayStart = new Date(currentDay); dayStart.setHours(0,0,0,0);
+    const dayEnd = new Date(currentDay); dayEnd.setHours(24,0,0,0);
+    
+    let items = tasks.filter(t => {
+        // Must have assigned date
+        if (!t.assigned) return t.date === key; 
+        
+        const start = new Date(t.assigned);
+        const duration = (typeof t.estimateMinutes === 'number' && t.estimateMinutes > 0) ? t.estimateMinutes : 60;
+        const end = new Date(start.getTime() + duration * 60000);
+        
+        // Check overlapping: start < dayEnd && end > dayStart
+        // Also ensure start is valid
+        if (isNaN(start.getTime())) return false;
+        
+        return start < dayEnd && end > dayStart;
+    });
+
     // Check if we already have the calendar structure
     let wrapper = calendarEl.querySelector('.calendar-inner');
     let dayGrid = wrapper ? wrapper.querySelector('.day-grid') : null;
@@ -177,20 +198,18 @@ function renderCalendar(tasks) {
         
         dayGrid = document.createElement('div'); dayGrid.className = 'day-grid';
         timeCol = document.createElement('div'); timeCol.className = 'time-column';
-        // render from 06:00 (6 AM) to 24:00 (midnight) in 15-minute increments
-        const START_MINUTES = 6 * 60; // 06:00
-        const END_MINUTES = 24 * 60; // 24:00 midnight
-        const totalMinutes = END_MINUTES - START_MINUTES; // 18 hours = 1080 minutes
-        const slots = totalMinutes / 15; // 72 slots
+        // render from 00:00 to 24:00 in 60-minute increments (Standard Hour View)
+        const START_MINUTES = 0; 
+        const END_MINUTES = 24 * 60; 
+        const totalMinutes = END_MINUTES - START_MINUTES; // 1440 minutes
+        const slots = totalMinutes / 60; // 24 slots (1 per hour)
         for (let i = 0; i < slots; i++) {
             const slot = document.createElement('div'); slot.className = 'time-slot';
-            const minutesAtSlot = START_MINUTES + i * 15;
-            if (minutesAtSlot % 60 === 0) {
-                slot.classList.add('hour');
-                let hour = Math.floor(minutesAtSlot / 60);
-                const hh = String(hour).padStart(2,'0');
-                slot.textContent = `${hh}:00`;
-            }
+            const minutesAtSlot = START_MINUTES + i * 60;
+            slot.classList.add('hour');
+            let hour = Math.floor(minutesAtSlot / 60);
+            const hh = String(hour).padStart(2,'0');
+            slot.textContent = `${hh}:00`;
             timeCol.appendChild(slot);
         }
         eventsCol = document.createElement('div'); eventsCol.className = 'events-column';
@@ -201,15 +220,17 @@ function renderCalendar(tasks) {
     }
 
     const firstSlot = timeCol.querySelector('.time-slot');
-    const slotHeight = (firstSlot && firstSlot.clientHeight > 0) ? firstSlot.clientHeight : 48; // fallback to CSS 48px
-    const dayHeight = slotHeight * 72; // 72 quarters
+    // Force 96px to match CSS background grid exactly.
+    // Now representing 1 hour per 96px (double height for better readability).
+    const slotHeight = 96; 
+    const dayHeight = slotHeight * 24; // 24 slots (24h)
     // events layer
     const layer = eventsCol.querySelector('.events-layer') || document.createElement('div');
     if (!layer.parentNode) {
         layer.className = 'events-layer';
         layer.style.position = 'relative';
         layer.style.height = dayHeight + 'px';
-        layer.style.marginTop = '12px';
+        layer.style.marginTop = '0'; 
         
         if (eventsCol.innerHTML !== '') eventsCol.innerHTML = '';
         eventsCol.appendChild(layer);
@@ -246,8 +267,9 @@ function renderCalendar(tasks) {
             const offset = parseFloat(e.dataTransfer.getData('offset')) || 0;
             const layerRect = layer.getBoundingClientRect();
             const relativeY = e.clientY - layerRect.top - offset;
-            const minutesFromStart = (relativeY / dayHeight) * 1080;
-            const dayStartMinutes = 6 * 60; 
+            // 24 hours = 1440 minutes
+            const minutesFromStart = (relativeY / dayHeight) * 1440;
+            const dayStartMinutes = 0; 
             let finalMinutes = dayStartMinutes + minutesFromStart;
             finalMinutes = Math.round(finalMinutes / 15) * 15;
             finalMinutes = Math.max(dayStartMinutes, Math.min(24*60 - 15, finalMinutes));
@@ -260,8 +282,8 @@ function renderCalendar(tasks) {
             // Optimistic move
             const card = layer.querySelector(`.event-card[data-id="${id}"]`);
             if (card) {
-                const pxPerMinute = dayHeight / 1080;
-                const newTop = (finalMinutes - 6*60) * pxPerMinute;
+                const pxPerMinute = dayHeight / 1440;
+                const newTop = finalMinutes * pxPerMinute;
                 card.style.top = newTop + 'px';
                 card.classList.remove('dragging');
                 card.classList.add('dropping');
@@ -284,16 +306,25 @@ function renderCalendar(tasks) {
         existing.forEach(el => el.remove());
         const now = new Date();
         const todayStr = formatDateISO(now);
-        if (key === todayStr) {
-            const startMins = 6 * 60;
+        // Compare dates using local components to avoid UTC/timezone mismatch
+        const isToday = currentDay.getDate() === now.getDate() && 
+                        currentDay.getMonth() === now.getMonth() && 
+                        currentDay.getFullYear() === now.getFullYear();
+                        
+        if (isToday) {
+            const startMins = 0;
             const curMins = now.getHours() * 60 + now.getMinutes();
             if (curMins >= startMins && curMins <= 24*60) {
-                const pxPerMin = dayHeight / (18 * 60);
-                const offsets = Math.round((curMins - startMins) * pxPerMin);
+                // dayHeight is for 24 hours.
+                const pxPerMin = dayHeight / 1440;
+                const offsets = (curMins - startMins) * pxPerMin;
                 const line = document.createElement('div');
                 line.className = 'current-time-line';
                 line.style.top = offsets + 'px';
+                line.style.zIndex = '50'; 
                 layer.appendChild(line);
+                
+                // Also scroll to current time if it's the first load
             }
         }
     }
@@ -309,9 +340,9 @@ function renderCalendar(tasks) {
             e.preventDefault();
             const rect = layer.getBoundingClientRect();
             const relY = e.clientY - rect.top;
-            const pxPerMin = dayHeight / 1080; 
+            const pxPerMin = dayHeight / 1440; 
             const minsFromStart = relY / pxPerMin;
-            const totalMins = (6 * 60) + minsFromStart;
+            const totalMins = minsFromStart;
             const snapped = Math.round(totalMins / 15) * 15;
             const h = Math.floor(snapped / 60);
             const m = snapped % 60;
@@ -323,7 +354,8 @@ function renderCalendar(tasks) {
     
     if (calendarEl.classList.contains('refreshing')) calendarEl.classList.remove('refreshing');
 
-    let items = byDate[key] || [];
+    // items is already defined and filtered at the top
+    // items.sort...
 
     // Conflict Detection
     items.sort((a,b) => {
@@ -331,22 +363,37 @@ function renderCalendar(tasks) {
         const timeB = b.assigned ? new Date(b.assigned).getTime() : 0;
         return timeA - timeB;
     });
+    // Pre-calculate effective start/end for conflict detection
+    items.forEach(t => {
+        if(!t.assigned) return;
+        const dStart = new Date(currentDay); dStart.setHours(0,0,0,0);
+        const tStart = new Date(t.assigned);
+        const tDur = (typeof t.estimateMinutes==='number'?t.estimateMinutes:60);
+        const tEnd = new Date(tStart.getTime() + tDur*60000);
+        
+        // Normalize to minutes relative to currentDay 00:00
+        // If starts yesterday 23:00, diff is -60 min
+        const startMins = (tStart - dStart)/60000;
+        const endMins = (tEnd - dStart)/60000;
+
+        t._effStart = startMins;
+        t._effEnd = endMins;
+    });
+
     for(let i=0; i<items.length; i++) {
         const taskA = items[i];
-        if(!taskA.assigned) continue;
-        const dateA = new Date(taskA.assigned);
-        const startA = dateA.getHours()*60 + dateA.getMinutes();
-        const durA = (typeof taskA.estimateMinutes==='number' ? taskA.estimateMinutes : 60);
-        const endA = startA + durA;
+        if(taskA._effStart === undefined) continue;
 
         for(let j=i+1; j<items.length; j++) {
             const taskB = items[j];
-            if(!taskB.assigned) continue;
-            const dateB = new Date(taskB.assigned);
-            const startB = dateB.getHours()*60 + dateB.getMinutes();
-            if(startB >= endA) break; 
-            taskA.isConflict = true;
-            taskB.isConflict = true;
+            if(taskB._effStart === undefined) continue;
+            
+            // Check intersection
+            // A starts before B ends AND A ends after B starts
+            if (taskA._effStart < taskB._effEnd && taskA._effEnd > taskB._effStart) {
+                 taskA.isConflict = true;
+                 taskB.isConflict = true;
+            }
         }
     }
     
@@ -386,16 +433,30 @@ function renderCalendar(tasks) {
     }
 
     items.forEach(it => {
-        const assigned = it.assigned ? new Date(it.assigned) : null;
-        const startMinutes = assigned ? (assigned.getHours() * 60 + assigned.getMinutes()) : (9 * 60); 
-        const duration = (typeof it.estimateMinutes === 'number' && it.estimateMinutes > 0) ? it.estimateMinutes : 60;
-        const visibleTotal = 18 * 60; 
+        if (it._effStart === undefined) return;
+        
+        // Render vars
+        const GRID_START = 0; // 00:00
+        const visibleTotal = 24 * 60; // 1440m
         const pxPerMinute = dayHeight / visibleTotal;
-        const relStart = Math.max(0, Math.min(visibleTotal, startMinutes - (6 * 60)));
-        const remaining = Math.max(0, visibleTotal - relStart);
-        const clampedDuration = Math.min(duration, remaining);
+
+        // Effective start/end (minutes from midnight)
+        let s = it._effStart;
+        let e = it._effEnd;
+
+        // Clip to view 00:00 (0) - 24:00 (1440)
+        
+        const renderStart = Math.max(s, GRID_START);
+        const renderEnd = Math.min(e, 24*60);
+
+        if (renderEnd <= renderStart) return; // Not visible in grid
+
+        const relStart = renderStart - GRID_START; // Relative to 00:00
+        const renderDuration = renderEnd - renderStart;
+
         const top = Math.round(relStart * pxPerMinute);
-        const height = Math.max(20, Math.round(clampedDuration * pxPerMinute));
+        const height = Math.max(20, Math.round(renderDuration * pxPerMinute));
+        const duration = (typeof it.estimateMinutes === 'number' && it.estimateMinutes > 0) ? it.estimateMinutes : 60;
 
         const card = document.createElement('div');
         card.className = 'event-card' + (it.isConflict ? ' conflict' : '');
@@ -526,9 +587,9 @@ function renderCalendar(tasks) {
                 fireConfetti();
                 
                 // Allow Undo
-                pushUndoAction({ type: 'update', id: it.id, oldPayload: { complete: false, color: it.color } });
+                pushUndoAction({ type: 'update', id: it.id, oldPayload: { complete: false } });
                 
-                await updateUserTask(it.id, { complete: true, color: 'gray' });
+                await updateUserTask(it.id, { complete: true });
                 await loadAndRender();
                 
                 showToast('Task completed!', 'success', { label: 'Undo', onClick: performUndo });

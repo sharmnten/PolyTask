@@ -203,13 +203,13 @@ body.dark #editColor::-moz-color-swatch {
 /* Day view grid: left time column + right events column */
 .day-grid { display: flex; gap: 12px; align-items: flex-start; }
 .day-grid .time-column { width: 72px; flex: 0 0 72px; border-right: 1px solid rgba(16,24,40,0.06); box-sizing: border-box; padding-right: 10px; }
-.day-grid .time-slot { height: 48px; display:flex; align-items:center; font-size:0.875rem; color:var(--muted); padding-left:6px; }
+.day-grid .time-slot { height: 96px; display:flex; align-items:center; font-size:0.875rem; color:var(--muted); padding-left:6px; }
 .day-grid .events-column {
     flex: 1 1 auto;
     min-width: 0;
     padding-left: 12px;
-    background-image: linear-gradient(to bottom, transparent 47px, rgba(16,24,40,0.06) 47px);
-    background-size: 100% 48px;
+    background-image: linear-gradient(to bottom, transparent 95px, rgba(16,24,40,0.06) 95px);
+    background-size: 100% 96px;
 }
 .day-grid .events-column .event-card { padding: 12px; margin-bottom: 8px; background: var(--card-bg); border-radius: 6px; box-sizing: border-box; width: 100%; }
 
@@ -245,7 +245,7 @@ body.dark #editColor::-moz-color-swatch {
     right: 0;
     height: 2px;
     background: var(--coral);
-    z-index: 5;
+    z-index: 20;
     pointer-events: none;
 }
 .current-time-line::before {
