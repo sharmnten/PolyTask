@@ -101,25 +101,6 @@
       </div>
     </div>
 
-    <h3 style="color:var(--muted); margin:1rem 0 0.75rem;">Analytics</h3>
-    <div class="analytics-grid">
-      <div class="analytics-card">
-        <div class="analytics-label">Time This Week</div>
-        <div class="analytics-value" id="anTimeWeek">-</div>
-        <div class="analytics-sub" id="anTopCategory">Top category —</div>
-      </div>
-      <div class="analytics-card">
-        <div class="analytics-label">Weekly Completion</div>
-        <div class="analytics-value" id="anCompletion">-</div>
-        <div class="analytics-sub" id="anCompletedCount">Completed —</div>
-      </div>
-      <div class="analytics-card">
-        <div class="analytics-label">Planned vs Done</div>
-        <div class="analytics-bar"><span id="anPlannedBar"></span></div>
-        <div class="analytics-sub" id="anPlannedCopy">--</div>
-      </div>
-    </div>
-
     <h3 style="color:var(--muted); margin-bottom:1rem;">Quick Actions</h3>
     <div class="action-grid">
       <a href="../calendar/index.html" class="action-btn">
@@ -147,6 +128,13 @@
         Settings
       </div>
     </div>
+
+    <a href="../analytics/index.html" class="action-btn" style="margin-top:1.5rem; display:inline-flex; align-items:center; gap:0.5rem; text-decoration:none;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19h16M4 12h8M4 5h12" />
+      </svg>
+      View Analytics
+    </a>
   </main>
 
   <footer>
@@ -342,17 +330,175 @@
 
         // Planned vs Done percentage
         const planDonePct = totalMinutesWeek ? Math.min(100, Math.round((doneMinutesWeek / totalMinutesWeek) * 100)) : 0;
+        const driftMinutes = doneMinutesWeek - totalMinutesWeek; // positive = ahead, negative = behind
+
+        // Completions last 7 days (today + previous 6)
+        const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const today = new Date(); today.setHours(0,0,0,0);
+        const days = Array.from({length: 7}, (_,i) => {
+          const d = new Date(today); d.setDate(today.getDate() - (6 - i)); return d;
+        });
+        const dayCounts = days.map(d => {
+          const next = new Date(d); next.setDate(d.getDate() + 1);
+          return tasks.filter(t => {
+            if (!t.complete) return false;
+            const dd = dateOf(t);
+            return dd && dd >= d && dd < next;
+          }).length;
+        });
+        const maxCount = Math.max(1, ...dayCounts);
+
 
         // Update analytics UI
         const fmtHours = (mins) => (mins / 60).toFixed(1) + 'h';
         const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         setText('anTimeWeek', totalMinutesWeek ? fmtHours(totalMinutesWeek) : '0.0h');
-        setText('anTopCategory', `Top category — ${topCat} (${fmtHours(topCatMinutes)})`);
-        setText('anCompletion', `${planDonePct}%`);
-        setText('anCompletedCount', `Completed — ${completedCountWeek} tasks`);
+        setText('anTopCategoryVal', topCatMinutes ? topCat : 'No data');
+        setText('anTopCategoryTime', topCatMinutes ? `${fmtHours(topCatMinutes)} this week` : 'No time logged');
+
+        const todayCompleted = dayCounts[6] || 0;
+        setText('anCompletion', todayCompleted.toString());
+        setText('anCompletedCount', 'Completed today');
         setText('anPlannedCopy', totalMinutesWeek ? `${fmtHours(doneMinutesWeek)} done / ${fmtHours(totalMinutesWeek)} planned` : 'No planned time yet');
+        const fmtDrift = (mins) => {
+          const sign = mins === 0 ? '' : (mins > 0 ? '+' : '–');
+          const dir = mins > 0 ? 'ahead' : (mins < 0 ? 'behind' : 'on plan');
+          return mins === 0 ? 'Drift — on plan' : `Drift — ${sign}${Math.abs(mins/60).toFixed(1)}h ${dir}`;
+        };
+        setText('anDrift', fmtDrift(driftMinutes));
         const bar = document.getElementById('anPlannedBar');
-        if (bar) bar.style.width = `${planDonePct}%`;
+        if (bar) {
+          bar.style.width = `${planDonePct}%`;
+          const pastelRed = '#f9c2c2';
+          const pastelYellow = '#f8e599';
+          const pastelGreen = '#b5e4c7';
+          let grad = pastelYellow;
+          if (planDonePct >= 70) grad = pastelGreen;
+          else if (planDonePct <= 40) grad = pastelRed;
+          bar.style.background = `linear-gradient(90deg, ${grad}, ${grad})`;
+        }
+
+        // Render completion line chart
+        const chart = document.getElementById('anCompletionChart');
+        if (chart) {
+          chart.innerHTML = '';
+          const containerW = chart.getBoundingClientRect().width || 360;
+          const w = Math.max(containerW, 320);
+          const h = 200;
+          const padX = 28;
+          const padY = 24;
+          const stepX = (w - padX * 2) / (dayCounts.length - 1 || 1);
+          const usableH = h - padY * 2;
+          const baseY = padY + usableH;
+          const safeCounts = dayCounts.map(c => Math.max(0, c));
+          const safeMax = Math.max(1, ...safeCounts);
+          const points = safeCounts.map((count, idx) => {
+            const x = padX + idx * stepX;
+            const y = padY + usableH - (safeMax ? (count / safeMax) * usableH : 0);
+            return { x, y, count };
+          });
+          if (points.length === 0) points.push({ x: padX, y: baseY, count: 0 });
+          // Build smooth path using Catmull-Rom to Bezier approximation (clamped to avoid overshoot below baseline)
+          const toPath = (pts) => {
+            if (pts.length === 0) return '';
+            if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`;
+            const path = [`M${pts[0].x},${pts[0].y}`];
+            for (let i = 0; i < pts.length - 1; i++) {
+              const p0 = i > 0 ? pts[i - 1] : pts[i];
+              const p1 = pts[i];
+              const p2 = pts[i + 1];
+              const p3 = i !== pts.length - 2 ? pts[i + 2] : p2;
+              const cp1x = p1.x + (p2.x - p0.x) / 6;
+              let cp1y = p1.y + (p2.y - p0.y) / 6;
+              const cp2x = p2.x - (p3.x - p1.x) / 6;
+              let cp2y = p2.y - (p3.y - p1.y) / 6;
+              const clampY = (v) => Math.min(baseY, Math.max(padY, v));
+              cp1y = clampY(cp1y);
+              cp2y = clampY(cp2y);
+              path.push(`C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`);
+            }
+            return path.join(' ');
+          };
+          const linePath = toPath(points);
+          const areaPath = `${linePath} L${points[points.length-1].x},${baseY} L${points[0].x},${baseY} Z`;
+
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+          const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          area.setAttribute('d', areaPath);
+          area.setAttribute('class', 'analytics-area');
+          svg.appendChild(area);
+
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          line.setAttribute('d', linePath);
+          line.setAttribute('class', 'analytics-line');
+          svg.appendChild(line);
+
+          // Tooltip elements
+          const tipGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          tipGroup.style.display = 'none';
+          const tipCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          tipCircle.setAttribute('r', '6');
+          tipCircle.setAttribute('fill', '#fff');
+          tipCircle.setAttribute('stroke', 'var(--accent)');
+          tipCircle.setAttribute('stroke-width', '2');
+          const tipBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          tipBg.setAttribute('rx', '4');
+          tipBg.setAttribute('ry', '4');
+          tipBg.setAttribute('fill', 'rgba(0,0,0,0.7)');
+          const tipText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          tipText.setAttribute('fill', '#fff');
+          tipText.setAttribute('font-size', '12');
+          tipText.setAttribute('font-family', 'Inter, system-ui, -apple-system, sans-serif');
+          tipText.setAttribute('y', '-8');
+          tipGroup.appendChild(tipBg);
+          tipGroup.appendChild(tipCircle);
+          tipGroup.appendChild(tipText);
+          svg.appendChild(tipGroup);
+
+          points.forEach(p => {
+            const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            c.setAttribute('cx', p.x);
+            c.setAttribute('cy', p.y);
+            c.setAttribute('r', '5');
+            c.setAttribute('class', 'analytics-point');
+            c.setAttribute('aria-label', p.count);
+            c.style.cursor = 'pointer';
+            c.addEventListener('click', () => {
+              tipGroup.style.display = 'block';
+              tipCircle.setAttribute('cx', p.x);
+              tipCircle.setAttribute('cy', p.y);
+              tipText.textContent = `${p.count}`;
+              const bbox = tipText.getBBox();
+              const padding = 6;
+              tipBg.setAttribute('x', p.x - bbox.width/2 - padding);
+              tipBg.setAttribute('y', p.y - bbox.height - 16);
+              tipBg.setAttribute('width', bbox.width + padding*2);
+              tipBg.setAttribute('height', bbox.height + padding*2);
+              tipBg.setAttribute('transform', `translate(0, ${-4})`);
+              tipText.setAttribute('x', p.x);
+              tipText.setAttribute('y', p.y - bbox.height - 6);
+            });
+            svg.appendChild(c);
+          });
+
+          const labelsRow = document.createElement('div');
+          labelsRow.className = 'analytics-xlabels';
+          dayCounts.forEach((_, idx) => {
+            const d = days[idx];
+            const lab = document.createElement('div');
+            lab.textContent = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+            labelsRow.appendChild(lab);
+          });
+
+          chart.appendChild(svg);
+          chart.appendChild(labelsRow);
+
+          const todayCount = dayCounts[6];
+          const prevAvg = dayCounts.slice(0,6).reduce((a,b)=>a+b,0) / 6 || 0;
+          setText('anCompletionTrend', `Today ${todayCount} vs avg ${prevAvg.toFixed(1)} (prev 6 days)`);
+        }
 
         document.getElementById('statPending').textContent = pending.length;
         document.getElementById('statToday').textContent = dueToday.length;

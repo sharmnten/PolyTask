@@ -118,7 +118,8 @@ function initHotkeys(taskModalOpen) {
 function isAppPage() {
     return window.location.href.includes('/dashboard/') || 
            window.location.href.includes('/calendar/') || 
-           window.location.href.includes('/tasks/');
+           window.location.href.includes('/tasks/') ||
+           window.location.href.includes('/analytics/');
 }
 
 function isAuthPage() {
