@@ -1,20 +1,10 @@
-.dashboard-header {
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 1rem;
-}
 
-.dashboard-header h1 {
+
+h1 {
   margin: 0;
   font-size: 2rem;
   color: var(--primary);
 }
-
-.dashboard-header p {
-  margin: 0.5rem 0 0;
-  color: var(--muted);
-}
-
 .stats-panel {
   height: 100%;
 }
@@ -165,7 +155,6 @@
 }
 
 #quick-view {
-  /* Give the quick-view insight card a stronger accent without hardcoding colors */
   --insight-accent: var(--primary);
 }
 
@@ -214,7 +203,6 @@
 }
 
 .insight-card {
-  /* Match the modal panel/header vibe: crisp container, header divider, soft depth */
   --insight-accent: var(--mint);
   position: relative;
   background: var(--card-bg);
@@ -235,7 +223,6 @@
   line-height: 1.2;
   color: var(--primary);
   border-bottom: 1px solid var(--border-color);
-  /* Subtle tint like a modal header surface */
   background: color-mix(in srgb, var(--insight-accent) 10%, var(--card-bg) 90%);
 }
 
