@@ -26,7 +26,7 @@
   <main class="card calendar-large">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
       <div id="welcome">
-        <h1 id="userGreeting" style="margin:0; font-size:2rem; color:var(--primary);">Hello!</h1>
+        <h1 id="userGreeting" style="margin:0; font-size:2rem; color:var(--dark-slate);">Hello!</h1>
         <p id="dateDisplay" style="color:var(--muted); margin-top:0.25rem;">loading...</p>
       </div>
       <div style="display:flex; gap:0.5rem; align-items:center;">
@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <div class="insight-card">
+    <div id="quick-view" class="insight-card">
       <h2 id="motivationalMessage">Welcome back.</h2>
       <p style="opacity:0.9; margin:0;" id="taskSummary">Checking your schedule...</p>
     </div>
@@ -135,10 +135,18 @@
       </svg>
       View Analytics
     </a>
+
+    <a href="../achievements/index.html" class="action-btn" style="margin-top:0.75rem; display:inline-flex; align-items:center; gap:0.5rem; text-decoration:none;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="8" r="7"></circle>
+        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+      </svg>
+      Achievements
+    </a>
   </main>
 
   <footer>
-    <p>&copy; 2026 PolyTask. Made with &#10084; by Neal Sharma</p>
+    <p>&copy; 2025 PolyTask. Made with &#10084; by Neal Sharma</p>
     <i class="fab fa-github"></i>
   </footer>
 
@@ -511,6 +519,11 @@
           const streak = PolyTask.calculateStreak(tasks);
           const fire = streak > 0 ? ' 🔥' : '';
           document.getElementById('statStreak').textContent = streak + fire;
+          
+          // Update streak for achievements
+          if (typeof PolyTask.updateStreak === 'function') {
+            PolyTask.updateStreak(streak);
+          }
         }
 
         // 4. Task Summary Text

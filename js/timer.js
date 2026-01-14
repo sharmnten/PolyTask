@@ -1,5 +1,6 @@
 
 import { showToast, fireConfetti } from './ui.js';
+import { trackFocusSession } from './achievement-tracker.js';
 
 let focusTask = null;
 let focusInterval = null;
@@ -90,6 +91,9 @@ export function endFocusSession(completed = false) {
     if (duration > 0) {
         totalFocusMinutes += duration;
         updateFocusLog(duration, focusTask ? focusTask.name : 'Focus Session');
+        
+        // Track achievement
+        trackFocusSession(duration);
     }
 
     if (completed) {

@@ -122,13 +122,10 @@
       const bar = document.getElementById('anPlannedBar');
       if (bar) {
         bar.style.width = `${planDonePct}%`;
-        const pastelRed = '#f9c2c2';
-        const pastelYellow = '#f8e599';
-        const pastelGreen = '#b5e4c7';
-        let grad = pastelYellow;
-        if (planDonePct >= 70) grad = pastelGreen;
-        else if (planDonePct <= 40) grad = pastelRed;
-        bar.style.background = `linear-gradient(90deg, ${grad}, ${grad})`;
+        let colorVar = 'var(--maize)'; // mid-range
+        if (planDonePct >= 70) colorVar = 'var(--celadon)'; // success
+        else if (planDonePct <= 40) colorVar = 'var(--coral)'; // behind
+        bar.style.background = colorVar;
       }
 
       // Draw completion chart
@@ -189,7 +186,7 @@
         const tipGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         tipGroup.style.display = 'none';
         const tipCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        tipCircle.setAttribute('r', '6');
+        tipCircle.setAttribute('r', '5');
         tipCircle.setAttribute('fill', '#fff');
         tipCircle.setAttribute('stroke', 'var(--accent)');
         tipCircle.setAttribute('stroke-width', '2');

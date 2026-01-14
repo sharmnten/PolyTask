@@ -7,6 +7,7 @@ import { initTimer } from './timer.js';
 import { showToast, formatDateISO, fireConfetti } from './ui.js';
 import { categorizeTasks, autoSchedule, listUserTasks, createUserTask, updateUserTask, deleteUserTask, calculateStreak, clearCompletedTasks } from './tasks.js';
 import { parseSmartInput } from './parser.js';
+import { updateStreak, syncAchievementsFromLocal, loadAchievementsFromServer, loadStatsFromServer } from './achievement-tracker.js';
 
 // Global state for theme
 function getInitialTheme() {
@@ -272,6 +273,11 @@ async function runApp() {
             initTimer();
             initQuickAdd();
             startSmartReminders();
+            
+            // Start periodic achievement sync (every 5 minutes)
+            setInterval(() => {
+                syncAchievementsFromLocal().catch(e => console.warn('Periodic sync failed:', e));
+            }, 5 * 60 * 1000);
 
             // Run calendar render only if calendar element exists, otherwise simple data init is enough
             if (document.getElementById('calendar')) {
@@ -295,6 +301,15 @@ async function runApp() {
          if (loginSection) loginSection.style.display = 'flex';
          if (appContainer && typeof appContainer.style !== 'undefined') appContainer.style.display = 'none';
     }
+    
+    // Sync achievements to server on app startup if logged in
+    if (user) {
+        try {
+            await syncAchievementsFromLocal();
+        } catch (e) {
+            console.warn('Failed to sync achievements on startup:', e);
+        }
+    }
 }
 
 // Start
@@ -312,6 +327,10 @@ window.PolyTask = {
     fireConfetti: fireConfetti,
     calculateStreak: calculateStreak,
     clearCompletedTasks: clearCompletedTasks,
+    updateStreak: updateStreak,
+    loadAchievementsFromServer: loadAchievementsFromServer,
+    loadStatsFromServer: loadStatsFromServer,
+    syncAchievementsFromLocal: syncAchievementsFromLocal,
     
     // Dashboard Focus Widget Logic
     focusState: {

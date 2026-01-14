@@ -26,7 +26,7 @@
 .stat-box {
   background: var(--bg);
   padding: 1.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   text-align: center;
   border: 1px solid var(--border-color);
   transition: transform 0.2s;
@@ -44,6 +44,12 @@
 .insight-card,
 #welcome {
   user-select: none;
+  
+}
+#quick-view,
+#quick-view h2{
+  background-color: #575fa9;
+  color: #ffffff;
 }
 
 .stat-box h3 {
@@ -91,17 +97,18 @@
 }
 
 .insight-card {
-  background: var(--dark-slate);
-  color: white;
+  background: color-mix(in srgb, var(--mint) 20%, var(--card-bg) 80%);
+  color: var(--primary);
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   margin-bottom: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
 }
 
 .insight-card h2 {
   margin-top: 0;
-  color: white;
+  color: var(--primary);
 }
 
 .action-grid {
@@ -118,7 +125,7 @@
   padding: 1.5rem;
   background: var(--bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius);
   text-decoration: none;
   color: var(--primary);
   transition: all 0.2s;
@@ -164,7 +171,7 @@
 .analytics-card {
   background: var(--bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 1.2rem 1.35rem;
   box-shadow: 0 8px 24px rgba(0,0,0,0.04);
   display: flex;
@@ -227,7 +234,7 @@
   display: block;
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--accent), var(--mint));
+  background: var(--accent);
   border-radius: 999px;
   transition: width 0.4s ease;
 }

@@ -10,6 +10,7 @@ import {
     APPWRITE_COLLECTION_TASKS
 } from './appwrite.js';
 import { showToast, formatDateISO } from './ui.js';
+import { trackTaskCreation, trackTaskCompletion } from './achievement-tracker.js';
 
 // Skip local model checks since we are running in a browser environment
 env.allowLocalModels = false;
@@ -97,6 +98,10 @@ export async function createUserTask(data) {
             data: payload,
             permissions: permissions
         });
+        
+        // Track achievement
+        trackTaskCreation();
+        
         if (created.called) return created.value;
         return await db.createDocument(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, uniqueId, payload, permissions);
     } catch (err) {
@@ -116,6 +121,19 @@ export async function updateUserTask(documentId, patch) {
         documentId: documentId,
         data: patch
     });
+    
+    // Track achievement if task is being completed
+    if (patch.complete === true) {
+        // Get the task data to pass to tracker
+        const task = await invokeWithCompat(db, 'getDocument', [APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId], {
+            databaseId: APPWRITE_DATABASE,
+            collectionId: APPWRITE_COLLECTION_TASKS,
+            documentId: documentId
+        });
+        const taskData = task.called ? task.value : await db.getDocument(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId);
+        trackTaskCompletion(taskData);
+    }
+    
     if (upd.called) return upd.value;
     return await db.updateDocument(APPWRITE_DATABASE, APPWRITE_COLLECTION_TASKS, documentId, patch);
 }
