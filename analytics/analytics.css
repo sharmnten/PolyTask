@@ -2,24 +2,13 @@
   padding: 1.5rem;
 }
 
-.analytics-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.analytics-header .btn-outline {
-  padding: 0.5rem 1rem;
-}
-
 .analytics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.25rem;
   width: 100%;
   align-items: stretch;
+  margin-top: 1.5rem;
 }
 
 .analytics-card {
