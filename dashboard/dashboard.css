@@ -588,10 +588,12 @@
 }
 
 .settings-section {
+  box-sizing: border-box;
   padding: 0.9rem;
   border: 1px solid var(--border-color);
   border-radius: 14px;
   background: color-mix(in srgb, var(--card-bg) 92%, var(--bg) 8%);
+  max-width: 100%;
   width: 100%;
 }
 
