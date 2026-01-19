@@ -241,6 +241,13 @@
       const modal = document.getElementById('settingsModal');
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
+      // Sync dark mode toggle state when modal opens
+      const toggle = document.getElementById('darkModeToggle');
+      if (toggle) {
+        const isDark = document.documentElement.classList.contains('dark') || 
+                       document.body.classList.contains('dark');
+        toggle.checked = isDark;
+      }
     }
 
     function closeSettings() {
