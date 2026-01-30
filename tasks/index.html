@@ -37,10 +37,25 @@
           <input type="text" id="quickAddInput" placeholder="Add a new task (e.g. 'Buy milk tomorrow')" onkeydown="handleQuickAdd(event)">
       </div>
 
+      <!-- Search Bar -->
+      <div class="search-box" style="margin-bottom: 1rem;">
+          <input type="text" id="searchInput" placeholder="Search tasks..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg); color: var(--primary);">
+      </div>
+
+      <!-- Bulk Actions Bar -->
+      <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: var(--bg); border: 1px solid var(--border-color); border-radius: var(--radius); display: none; align-items: center; gap: 0.5rem;">
+          <span id="selectedCount" style="color: var(--primary); font-weight: 600;">0 selected</span>
+          <button class="btn-outline" onclick="bulkComplete()" style="padding: 0.5rem 1rem;">Complete</button>
+          <button class="btn-outline" onclick="bulkDelete()" style="padding: 0.5rem 1rem; color: var(--coral);">Delete</button>
+          <button class="btn-outline" onclick="bulkArchive()" style="padding: 0.5rem 1rem;">Archive</button>
+          <button class="btn-outline" onclick="clearSelection()" style="padding: 0.5rem 1rem; margin-left: auto;">Clear</button>
+      </div>
+
       <div class="filters-row">
           <button class="btn-outline" onclick="filterTasks('all')" id="filterAll">All</button>
           <button class="btn-outline" onclick="filterTasks('active')" id="filterActive">Active</button>
           <button class="btn-outline" onclick="filterTasks('completed')" id="filterCompleted">Done</button>
+          <button class="btn-outline" onclick="filterTasks('archived')" id="filterArchived">Archived</button>
       </div>
 
       <div id="taskList" class="task-list">
@@ -70,6 +85,9 @@
 
       let currentFilter = 'all';
       let allFetchedTasks = []; // Client-side cache
+      let searchQuery = '';
+      let selectedTasks = new Set();
+      let undoStack = [];
 
       function filterTasks(type) {
           currentFilter = type;
@@ -104,8 +122,20 @@
           
           // Apply Filter on local cache
           let tasks = allFetchedTasks;
-          if (currentFilter === 'active') tasks = allFetchedTasks.filter(t => !t.complete);
-          if (currentFilter === 'completed') tasks = allFetchedTasks.filter(t => t.complete);
+          if (currentFilter === 'active') tasks = allFetchedTasks.filter(t => !t.complete && !t.archived);
+          if (currentFilter === 'completed') tasks = allFetchedTasks.filter(t => t.complete && !t.archived);
+          if (currentFilter === 'archived') tasks = allFetchedTasks.filter(t => t.archived);
+          if (currentFilter === 'all') tasks = allFetchedTasks.filter(t => !t.archived);
+          
+          // Apply search filter
+          if (searchQuery) {
+              const query = searchQuery.toLowerCase();
+              tasks = tasks.filter(t => 
+                  t.name?.toLowerCase().includes(query) ||
+                  t.category?.toLowerCase().includes(query) ||
+                  t.description?.toLowerCase().includes(query)
+              );
+          }
           
           if(!tasks.length) {
               list.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--muted);">No ${currentFilter} tasks found.</div>`;
@@ -113,7 +143,6 @@
           }
 
           // Sort: Incomplete first, then by priority
-          // Create a shallow copy to avoid mutating the cached array sort order permanently if undesired (though usually fine)
           const sorted = [...tasks].sort((a,b) => (a.complete === b.complete) ? 0 : a.complete ? 1 : -1);
 
           list.innerHTML = '';
@@ -122,8 +151,9 @@
               
               // Check if task is overdue
               const isOverdue = !t.complete && t.due && new Date(t.due) < new Date();
+              const isSelected = selectedTasks.has(t.$id);
               
-              el.className = `task-item ${t.complete ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}`;
+              el.className = `task-item ${t.complete ? 'completed' : ''} ${isOverdue ? 'overdue' : ''} ${isSelected ? 'selected' : ''}`;
               
               const priorityClass = (t.priority || 'medium').toLowerCase();
               const dateStr = t.due ? new Date(t.due).toLocaleDateString() : '';
@@ -134,10 +164,11 @@
                 : '';
 
               el.innerHTML = `
+                  <input type="checkbox" class="task-select" onchange="toggleSelect('${t.$id}')" ${isSelected ? 'checked' : ''} style="margin-right: 0.5rem;">
                   <div class="checkbox-round ${t.complete ? 'checked' : ''}" onclick="toggleTask('${t.$id}', ${!t.complete})">
                      ${t.complete ? '✓' : ''}
                   </div>
-                  <div style="flex:1;">
+                  <div style="flex:1; cursor: pointer;" onclick="openTaskDetails('${t.$id}')">
                       <div style="font-weight:500; font-size:1.05rem;">
                          <span class="title">${escapeHtml(t.name)}</span>
                          ${categoryPill}
@@ -145,15 +176,21 @@
                       <div style="font-size:0.85rem; color:var(--muted); margin-top:0.2rem;">
                           ${dateStr ? '📅 ' + dateStr : ''} 
                           ${t.estimated_time ? ' • ⏱ ' + t.estimated_time + 'm' : ''}
+                          ${t.description ? ' • 📝' : ''}
                       </div>
                   </div>
                   <div class="task-meta">
                       <span class="badge ${escapeHtml(priorityClass)}">${escapeHtml(t.priority || 'medium')}</span>
+                      <button class="icon-btn" onclick="duplicateTask('${t.$id}')" title="Duplicate" style="opacity:0.7;">📋</button>
+                      ${t.archived ? '<button class="icon-btn" onclick="unarchiveTask(\'' + t.$id + '\')" title="Unarchive" style="opacity:0.7;">↩️</button>' : ''}
                       <button class="icon-btn" onclick="deleteTask('${t.$id}')" style="color:var(--coral); opacity:0.5;">&times;</button>
                   </div>
               `;
               list.appendChild(el);
           });
+          
+          // Update selection count
+          updateBulkActionsBar();
       }
 
       async function toggleTask(id, newState) {
@@ -182,6 +219,12 @@
       async function deleteTask(id) {
           if(!confirm('Delete task?')) return;
           try {
+             // Save for undo
+             const task = allFetchedTasks.find(t => t.$id === id);
+             if (task) {
+                 undoStack.push({ action: 'delete', task: {...task} });
+             }
+             
              // Optimistic Update
              allFetchedTasks = allFetchedTasks.filter(t => t.$id !== id);
              renderList();
@@ -189,10 +232,225 @@
              await PolyTask.deleteUserTask(id);
              // Background sync
              PolyTask.listUserTasks().then(fresh => { allFetchedTasks = fresh; });
+             
+             // Show undo option
+             if (window.PolyTask?.showToast) {
+                 window.PolyTask.showToast('Task deleted', 'info', { label: 'Undo', action: () => undoDelete() });
+             }
           } catch(e) { 
               console.error(e); 
               refreshTasks();
           }
+      }
+      
+      // New functions for enhancements
+      function toggleSelect(id) {
+          if (selectedTasks.has(id)) {
+              selectedTasks.delete(id);
+          } else {
+              selectedTasks.add(id);
+          }
+          updateBulkActionsBar();
+          renderList();
+      }
+      
+      function updateBulkActionsBar() {
+          const bar = document.getElementById('bulkActionsBar');
+          const count = document.getElementById('selectedCount');
+          if (selectedTasks.size > 0) {
+              bar.style.display = 'flex';
+              count.textContent = `${selectedTasks.size} selected`;
+          } else {
+              bar.style.display = 'none';
+          }
+      }
+      
+      function clearSelection() {
+          selectedTasks.clear();
+          updateBulkActionsBar();
+          renderList();
+      }
+      
+      async function bulkComplete() {
+          if (selectedTasks.size === 0) return;
+          const ids = Array.from(selectedTasks);
+          for (const id of ids) {
+              await toggleTask(id, true);
+          }
+          clearSelection();
+      }
+      
+      async function bulkDelete() {
+          if (selectedTasks.size === 0) return;
+          if (!confirm(`Delete ${selectedTasks.size} tasks?`)) return;
+          const ids = Array.from(selectedTasks);
+          for (const id of ids) {
+              const task = allFetchedTasks.find(t => t.$id === id);
+              if (task) {
+                  await PolyTask.deleteUserTask(id);
+                  allFetchedTasks = allFetchedTasks.filter(t => t.$id !== id);
+              }
+          }
+          clearSelection();
+          renderList();
+      }
+      
+      async function bulkArchive() {
+          if (selectedTasks.size === 0) return;
+          const ids = Array.from(selectedTasks);
+          for (const id of ids) {
+              await archiveTask(id);
+          }
+          clearSelection();
+      }
+      
+      async function duplicateTask(id) {
+          const task = allFetchedTasks.find(t => t.$id === id);
+          if (!task) return;
+          
+          const payload = {
+              name: task.name + ' (Copy)',
+              complete: false,
+              priority: task.priority,
+              due: task.due,
+              assigned: task.assigned,
+              estimated_time: task.estimated_time,
+              category: task.category,
+              color: task.color,
+              description: task.description
+          };
+          
+          try {
+              const newTask = await PolyTask.createUserTask(payload);
+              if (newTask) {
+                  allFetchedTasks.push(newTask);
+                  renderList();
+                  if (window.PolyTask?.showToast) {
+                      window.PolyTask.showToast('Task duplicated', 'success');
+                  }
+              }
+          } catch(e) {
+              console.error(e);
+          }
+      }
+      
+      async function archiveTask(id) {
+          try {
+              const task = allFetchedTasks.find(t => t.$id === id);
+              if (task) {
+                  task.archived = true;
+                  await PolyTask.updateUserTask(id, { archived: true });
+                  renderList();
+                  if (window.PolyTask?.showToast) {
+                      window.PolyTask.showToast('Task archived', 'info');
+                  }
+              }
+          } catch(e) {
+              console.error(e);
+          }
+      }
+      
+      async function unarchiveTask(id) {
+          try {
+              const task = allFetchedTasks.find(t => t.$id === id);
+              if (task) {
+                  task.archived = false;
+                  await PolyTask.updateUserTask(id, { archived: false });
+                  renderList();
+                  if (window.PolyTask?.showToast) {
+                      window.PolyTask.showToast('Task restored', 'success');
+                  }
+              }
+          } catch(e) {
+              console.error(e);
+          }
+      }
+      
+      function undoDelete() {
+          if (undoStack.length === 0) return;
+          const lastAction = undoStack.pop();
+          if (lastAction.action === 'delete') {
+              // Restore the task
+              PolyTask.createUserTask(lastAction.task).then(newTask => {
+                  if (newTask) {
+                      allFetchedTasks.push(newTask);
+                      renderList();
+                  }
+              });
+          }
+      }
+      
+      function openTaskDetails(id) {
+          const task = allFetchedTasks.find(t => t.$id === id);
+          if (!task) return;
+          
+          const description = prompt(`Description for "${task.name}":`, task.description || '');
+          if (description !== null) {
+              task.description = description;
+              PolyTask.updateUserTask(id, { description });
+              renderList();
+          }
+      }
+      
+      // Search functionality
+      function initSearch() {
+          const searchInput = document.getElementById('searchInput');
+          if (searchInput) {
+              searchInput.addEventListener('input', (e) => {
+                  searchQuery = e.target.value.trim();
+                  renderList();
+              });
+          }
+      }
+      
+      // Keyboard shortcuts
+      function initKeyboardShortcuts() {
+          document.addEventListener('keydown', (e) => {
+              // Only activate if not typing in an input
+              if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                  // Allow Cmd/Ctrl+K even in inputs
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                      e.preventDefault();
+                      document.getElementById('searchInput')?.focus();
+                  }
+                  return;
+              }
+              
+              // N - New task
+              if (e.key === 'n' || e.key === 'N') {
+                  e.preventDefault();
+                  document.getElementById('quickAddInput')?.focus();
+              }
+              
+              // / - Search
+              if (e.key === '/') {
+                  e.preventDefault();
+                  document.getElementById('searchInput')?.focus();
+              }
+              
+              // D - Dashboard
+              if ((e.shiftKey && e.key === 'D') || (e.key === 'd' && e.shiftKey)) {
+                  e.preventDefault();
+                  window.location.href = '../dashboard/index.html';
+              }
+              
+              // C - Calendar
+              if ((e.shiftKey && e.key === 'C') || (e.key === 'c' && e.shiftKey)) {
+                  e.preventDefault();
+                  window.location.href = '../calendar/index.html';
+              }
+              
+              // Ctrl/Cmd + Z - Undo
+              if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+                  e.preventDefault();
+                  undoDelete();
+              }
+              
+              // Escape - Clear selection
+              if (e.key === 'Escape') {
+                  clearSelection();
+              }
+          });
       }
 
       async function handleQuickAdd(e) {
@@ -276,7 +534,23 @@
           await refreshTasks();
 
           // Set initial filter state UI
-          filterTasks('all'); 
+          filterTasks('all');
+          
+          // Initialize search
+          initSearch();
+          
+          // Initialize keyboard shortcuts
+          initKeyboardShortcuts();
+          
+          // Show keyboard shortcuts help on first visit
+          if (!localStorage.getItem('shortcuts_seen')) {
+              setTimeout(() => {
+                  if (window.PolyTask?.showToast) {
+                      window.PolyTask.showToast('💡 Press ? for keyboard shortcuts', 'info');
+                  }
+                  localStorage.setItem('shortcuts_seen', 'true');
+              }, 2000);
+          }
       });
   </script>
 </body>

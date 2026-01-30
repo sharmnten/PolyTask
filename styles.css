@@ -140,11 +140,11 @@ body {
     line-height: 48px; /* vertically center single-line text */
     padding: 0 0.9rem; /* left/right padding only; vertical centering handled by line-height */
     border: 1px solid #e6e6e6;
-    border-radius: 0.6rem;
+    border-radius: var(--radius);
     background: var(--card-bg);
     font-size: 1rem;
     outline: none;
-    transition: box-shadow .12s ease, border-color .12s ease, padding .12s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, padding 0.2s ease;
     /* ensure padding doesn't cause overflow inside narrow containers (modal) */
     box-sizing: border-box;
     max-width: 100%;
@@ -206,7 +206,7 @@ body {
     padding: 0 0.9rem;
     font-size: 1rem;
     margin: 0;
-    border-radius: 0.6rem;
+    border-radius: var(--radius);
     box-sizing: border-box;
 }
 
@@ -263,9 +263,9 @@ body {
 .btn, .btn-outline, .icon-btn, .toggle-btn, .nav-day-btn, #createTaskBtn, button:not(.btn):not(.icon-btn):not(.btn-outline):not(.toggle-btn):not(.complete-btn) {
     font-family: inherit;
     font-weight: 700;
-    border-radius: 0.6rem;
+    border-radius: var(--radius);
     cursor: pointer;
-    transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -289,7 +289,7 @@ body {
     padding: 0.5rem 0.85rem;
     min-width: 88px;
     font-size: 0.95rem;
-    border-radius: 0.6rem;
+    border-radius: var(--radius);
     color: white;
     box-shadow: 0 6px 18px rgba(16,24,40,0.06);
 }
@@ -381,7 +381,7 @@ body {
     max-width: 100%;
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: calc(var(--radius) + 2px);
+    border-radius: var(--radius);
     box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
     overflow-x: hidden;
 
@@ -588,7 +588,7 @@ button:not(.btn):not(.icon-btn):not(.btn-outline):not(.toggle-btn):not(.complete
     padding: 10px 20px;
     cursor: pointer;
     font-size: 16px;
-    border-radius: 0.6rem;
+    border-radius: var(--radius);
 }
 button:not(.btn):not(.icon-btn):not(.btn-outline):not(.toggle-btn):not(.complete-btn):hover { filter: brightness(.95); transform: translateY(-1px); }
 label {
@@ -671,7 +671,7 @@ section {
     background: white;
     color: #333;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     display: flex;
     align-items: center;
