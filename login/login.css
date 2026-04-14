@@ -6,14 +6,12 @@
     margin-bottom: .5rem;
 }
 
-#create-account {
-    text-align: center;
-    font-size: .9rem;
-    color: var(--muted);
-    margin-top: 1rem;
+.login-options-row {
+    margin-top: 0.25rem;
 }
 
-main .lead {
+#formError {
+    min-height: 1.25rem;
     text-align: center;
 }
 
@@ -23,12 +21,4 @@ main .lead {
     top: 1.5rem;
     transform: translateY(-50%);
     z-index: 5;
-}
-
-.input-wrapper label {
-    top: .8rem;
-}
-
-#formError {
-    text-align: center;
 }

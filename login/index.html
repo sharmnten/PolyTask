@@ -15,14 +15,15 @@
     <script defer src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
     <script type="module" src="../js/main.js"></script>
 </head>
-<body style="display:flex; flex-direction:column; min-height:100vh;">
-    <div style="position: absolute; top: 1rem; right: 1rem;">
-      <label style="cursor:pointer; display:flex; align-items:center;" title="Toggle Dark Mode">
-        <input type="checkbox" id="dmToggle" class="dm-toggle" style="display:none">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" class="dm-icon" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-      </label>
-    </div>
-    <main class="card" role="main" aria-labelledby="signin-heading" style="margin: auto;">
+<body class="auth-page login-page">
+        <div class="theme-toggle-shell">
+                <label class="theme-toggle" for="dmToggle" title="Toggle Dark Mode" aria-label="Toggle dark mode">
+                        <input type="checkbox" id="dmToggle" class="dm-toggle">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" class="dm-icon" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </label>
+        </div>
+
+        <main class="card auth-card login-card" role="main" aria-labelledby="signin-heading">
         <h1 id="signin-heading">Sign in to PolyTask</h1>
         <p class="lead">Welcome back — enter your details to continue.</p>
 
@@ -40,7 +41,7 @@
                 <div id="passwordHelp" class="helper">Minimum 8 characters.</div>
             </div>
 
-            <div id="login-options" class="row" style="margin-top:.25rem;">
+            <div id="login-options" class="row login-options-row">
                 <label class="checkbox">
                     <input type="checkbox" id="remember" name="remember" />
                     <span class="checkbox-custom" aria-hidden="true"></span>
@@ -60,9 +61,9 @@
             <div id="formError" class="error" role="alert" aria-live="assertive" style="display:none;"></div>
         </form>
     </main>
+
+    <footer class="auth-footer">
+        <p>&copy; 2026 PolyTask. Made with &#10084; by Neal Sharma</p>
+    </footer>
 </body>
-<footer>
-    <p>&copy; 2026 PolyTask. Made with &#10084; by Neal Sharma</p>
-    <i class="fab fa-github"></i>
-</footer>
 </html>
