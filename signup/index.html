@@ -10,6 +10,7 @@
     <script src="../js/theme-init.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><style>path{fill:%23465775}@media(prefers-color-scheme:dark){path{fill:%23a5b4fc}}</style><path d='M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 12l-10-5v2l10 5 10-5v-2l-2.5 1.25L12 11zm0 5l2.5-1.25L12 17l-10-5v2l10 5 10-5v-2l-2.5 1.25L12 16z'/></svg>">
     <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="./signup.css">
     <script>window.APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';</script>
     <script defer src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
     <script type="module" src="../js/main.js"></script>
@@ -21,8 +22,9 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" class="dm-icon" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </label>
     </div>
-    <div class="card" style="margin: auto;">
-        <h1>Create account</h1>
+    <main class="card" role="main" aria-labelledby="signup-heading" style="margin: auto;">
+        <h1 id="signup-heading">Create account</h1>
+        <p class="lead">Set up your PolyTask account in under a minute.</p>
         <form id="signupForm" action="#" method="post" novalidate>
             <div class="input-wrapper">
                 <input id="fullName" name="fullName" type="text" autocomplete="name" required placeholder=" " />
@@ -52,17 +54,17 @@
                 <label class="checkbox">
                     <input id="terms" type="checkbox" />
                     <span class="checkbox-custom" aria-hidden="true"></span>
-                    <span>I agree to the terms</span>
+                    <span>I agree to the <a href="../terms/index.html" target="_blank" rel="noopener noreferrer">Terms of Service</a></span>
                 </label>
             </div>
 
-            <button id="submitBtn" type="submit" disabled>Sign up</button>
+            <button id="submitBtn" class="btn" type="submit" disabled>Sign up</button>
             
-            <div style="text-align:center;margin-top:.5rem;font-size:.9rem;color:var(--muted);">
+            <div id="create-account">
                 Already have an account? <a href="../login/index.html" class="muted-link">Sign in</a>
             </div>
         </form>
-    </div>
+    </main>
 
 </body>
 <footer>

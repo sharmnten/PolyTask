@@ -127,6 +127,43 @@ function isAuthPage() {
     return window.location.href.includes('/login/') || window.location.href.includes('/signup/');
 }
 
+function isLandingPage() {
+    const path = window.location.pathname;
+    return path === '/' || path.endsWith('/index.html');
+}
+
+function updateLandingAuth(user) {
+    if (!isLandingPage()) return;
+    const loginLink = document.getElementById('landingLogin');
+    const signupLink = document.getElementById('landingSignup');
+    const dashboardLink = document.getElementById('landingDashboard');
+    if (!loginLink || !signupLink || !dashboardLink) return;
+
+    if (user) {
+        loginLink.style.display = 'none';
+        signupLink.style.display = 'none';
+        dashboardLink.style.display = 'inline-flex';
+    } else {
+        loginLink.style.display = 'inline-flex';
+        signupLink.style.display = 'inline-flex';
+        dashboardLink.style.display = 'none';
+    }
+}
+
+function initPasswordToggles() {
+    document.querySelectorAll('.toggle-btn[data-toggle], #togglePassword').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.toggle || 'password';
+            const pwd = document.getElementById(targetId);
+            if (!pwd) return;
+            const isPassword = pwd.type === 'password';
+            pwd.type = isPassword ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', String(isPassword));
+            btn.textContent = isPassword ? 'Hide' : 'Show';
+        });
+    });
+}
+
 function initQuickAdd() {
     const input = document.getElementById('quickTaskInput');
     const btn = document.getElementById('quickAddBtn');
@@ -236,8 +273,11 @@ async function runApp() {
         }
     }
 
+    updateLandingAuth(user);
+
     // Initialize Auth UI (listeners for login forms if they exist)
     initAuth();
+    initPasswordToggles();
 
     // Check if we have the app container (Dashboard/Calendar/Tasks) or specific container
     const appContainer = document.getElementById('appContainer') || 

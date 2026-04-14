@@ -1,0 +1,20 @@
+#create-account {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 1rem;
+}
+
+main .lead {
+    text-align: center;
+}
+
+.toggle-btn {
+    right: 10px;
+    top: 1.5rem;
+    transform: translateY(-50%);
+}
+
+.input-wrapper label {
+    top: 0.8rem;
+}

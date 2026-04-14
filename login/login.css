@@ -13,16 +13,20 @@
     margin-top: 1rem;
 }
 
+main .lead {
+    text-align: center;
+}
+
 #togglePassword {
     position: absolute;
     right: 10px;
-    top: 35%;
+    top: 1.5rem;
     transform: translateY(-50%);
     z-index: 5;
 }
 
 .input-wrapper label {
-    top: 20%;
+    top: .8rem;
 }
 
 #formError {
