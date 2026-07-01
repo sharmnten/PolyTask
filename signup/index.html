@@ -4,26 +4,31 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Sign Up — PolyTask</title>
+    <meta name="description" content="Create a PolyTask account to start planning tasks and focus sessions.">
+    <meta name="robots" content="noindex, nofollow">
     <meta name="color-scheme" content="light dark">
     <script src="../js/theme-init.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><style>path{fill:%23465775}@media(prefers-color-scheme:dark){path{fill:%23a5b4fc}}</style><path d='M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 12l-10-5v2l10 5 10-5v-2l-2.5 1.25L12 11zm0 5l2.5-1.25L12 17l-10-5v2l10 5 10-5v-2l-2.5 1.25L12 16z'/></svg>">
     <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="./signup.css">
     <script>window.APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';</script>
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/appwrite@21.4.0"></script>
     <script type="module" src="../js/main.js"></script>
 </head>
-<body style="display:flex; flex-direction:column; min-height:100vh;">
-    <div style="position: absolute; top: 1rem; right: 1rem;">
-      <label style="cursor:pointer; display:flex; align-items:center;" title="Toggle Dark Mode">
-        <input type="checkbox" id="dmToggle" class="dm-toggle" style="display:none">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" class="dm-icon" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-      </label>
+<body class="auth-page signup-page">
+    <div class="theme-toggle-shell">
+        <label class="theme-toggle" for="dmToggle" title="Toggle Dark Mode" aria-label="Toggle dark mode">
+            <input type="checkbox" id="dmToggle" class="dm-toggle">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" class="dm-icon" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </label>
     </div>
-    <div class="card" style="margin: auto;">
-        <h1>Create account</h1>
+
+    <main class="card auth-card signup-card" role="main" aria-labelledby="signup-heading">
+        <h1 id="signup-heading">Create account</h1>
+        <p class="lead">Set up your PolyTask account in under a minute.</p>
         <form id="signupForm" action="#" method="post" novalidate>
             <div class="input-wrapper">
-                <input id="fullName" name="fullName" type="text" autocomplete="name" required placeholder=" " />
+                <input id="fullName" name="fullName" type="text" autocomplete="name" required placeholder=" " inputmode="text" />
                 <label for="fullName">Full name</label>
             </div>
 
@@ -35,36 +40,37 @@
             <div class="input-wrapper">
                 <input id="password" name="password" type="password" minlength="8" autocomplete="new-password" required placeholder=" " />
                 <label for="password">Password</label>
-                <button type="button" class="icon-btn toggle-btn" data-toggle="password">Show</button>
+                <button type="button" class="icon-btn toggle-btn" data-toggle="password" aria-pressed="false" title="Show password">Show</button>
+                <div class="helper">Use at least 8 characters.</div>
             </div>
 
             <div class="input-wrapper">
                 <input id="confirmPassword" name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required placeholder=" " />
                 <label for="confirmPassword">Confirm password</label>
-                <button type="button" class="icon-btn toggle-btn" data-toggle="confirmPassword">Show</button>
+                <button type="button" class="icon-btn toggle-btn" data-toggle="confirmPassword" aria-pressed="false" title="Show confirm password">Show</button>
             </div>
 
-            <div id="pwMismatch" class="error" style="display:none;">Passwords do not match.</div>
+            <div id="pwMismatch" class="error" role="alert" aria-live="polite" style="display:none;">Passwords do not match.</div>
 
-            <div class="row" style="margin-top:.5rem;">
+            <div class="row signup-consent-row">
                 <label class="checkbox">
                     <input id="terms" type="checkbox" />
                     <span class="checkbox-custom" aria-hidden="true"></span>
-                    <span>I agree to the terms</span>
+                    <span>I agree to the <a href="../terms/index.html" target="_blank" class="muted-link" rel="noopener noreferrer">Terms of Service</a></span>
                 </label>
             </div>
 
-            <button id="submitBtn" type="submit" disabled>Sign up</button>
+            <button id="submitBtn" class="btn" type="submit" disabled>Sign up</button>
             
-            <div style="text-align:center;margin-top:.5rem;font-size:.9rem;color:var(--muted);">
+            <div id="create-account">
                 Already have an account? <a href="../login/index.html" class="muted-link">Sign in</a>
             </div>
         </form>
-    </div>
+    </main>
+
+    <footer class="auth-footer">
+        <p>&copy; 2026 PolyTask. Made with &#10084; by Neal Sharma</p>
+    </footer>
 
 </body>
-<footer>
-    <p>2026 PolyTask. Made with &#10084; by Neal Sharma</p>
-    <i class="fab fa-github"></i>
-</footer>
 </html>

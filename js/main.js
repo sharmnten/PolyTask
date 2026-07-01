@@ -4,7 +4,7 @@ import { ensureSchema } from './appwrite.js';
 import { loadAndRender, adjustCurrentDay, getCurrentDay, setCurrentDay, setViewMode, setModalHandlers } from './calendar.js';
 import { initTaskModal, initScheduleModal, initEditModal } from './modals.js';
 import { initTimer } from './timer.js';
-import { showToast, formatDateISO, fireConfetti } from './ui.js';
+import { showToast, formatDateISO, fireConfetti, escapeHtml, sanitizeColor } from './ui.js';
 import { categorizeTasks, autoSchedule, autoRescheduleOverdueTasks, listUserTasks, createUserTask, updateUserTask, deleteUserTask, calculateStreak, clearCompletedTasks } from './tasks.js';
 import { parseSmartInput } from './parser.js';
 import { updateStreak, syncAchievementsFromLocal, loadAchievementsFromServer, loadStatsFromServer } from './achievement-tracker.js';
@@ -127,6 +127,43 @@ function isAuthPage() {
     return window.location.href.includes('/login/') || window.location.href.includes('/signup/');
 }
 
+function isLandingPage() {
+    const path = window.location.pathname;
+    return path === '/' || path.endsWith('/index.html');
+}
+
+function updateLandingAuth(user) {
+    if (!isLandingPage()) return;
+    const loginLink = document.getElementById('landingLogin');
+    const signupLink = document.getElementById('landingSignup');
+    const dashboardLink = document.getElementById('landingDashboard');
+    if (!loginLink || !signupLink || !dashboardLink) return;
+
+    if (user) {
+        loginLink.style.display = 'none';
+        signupLink.style.display = 'none';
+        dashboardLink.style.display = 'inline-flex';
+    } else {
+        loginLink.style.display = 'inline-flex';
+        signupLink.style.display = 'inline-flex';
+        dashboardLink.style.display = 'none';
+    }
+}
+
+function initPasswordToggles() {
+    document.querySelectorAll('.toggle-btn[data-toggle], #togglePassword').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.toggle || 'password';
+            const pwd = document.getElementById(targetId);
+            if (!pwd) return;
+            const isPassword = pwd.type === 'password';
+            pwd.type = isPassword ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', String(isPassword));
+            btn.textContent = isPassword ? 'Hide' : 'Show';
+        });
+    });
+}
+
 function initQuickAdd() {
     const input = document.getElementById('quickTaskInput');
     const btn = document.getElementById('quickAddBtn');
@@ -204,10 +241,10 @@ function startSmartReminders() {
                 if (reminderState.notified.has(id)) return;
                 reminderState.notified.add(id);
                 const timeStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                showToast(`Starts soon: ${t.name || 'Task'} @ ${timeStr}`, 'info', {
+                showToast(`${t.name || 'Task'} @ ${timeStr}`, 'info', {
                     label: 'Open planner',
                     onClick: () => { window.location.href = '../calendar/index.html'; }
-                });
+                }, 'Starts soon');
             }
         });
     };
@@ -236,8 +273,11 @@ async function runApp() {
         }
     }
 
+    updateLandingAuth(user);
+
     // Initialize Auth UI (listeners for login forms if they exist)
     initAuth();
+    initPasswordToggles();
 
     // Check if we have the app container (Dashboard/Calendar/Tasks) or specific container
     const appContainer = document.getElementById('appContainer') || 
@@ -335,6 +375,9 @@ window.PolyTask = {
     deleteUserTask: deleteUserTask,
     parseSmartInput: parseSmartInput,
     fireConfetti: fireConfetti,
+    showToast: showToast,
+    escapeHtml: escapeHtml,
+    sanitizeColor: sanitizeColor,
     calculateStreak: calculateStreak,
     clearCompletedTasks: clearCompletedTasks,
     autoRescheduleOverdueTasks: autoRescheduleOverdueTasks,
@@ -398,6 +441,8 @@ window.PolyTask = {
         }
     }
 };
+
+window.dispatchEvent(new Event('polytask:ready'));
 
 window.toggleDarkMode = () => {
     const btn = document.getElementById('toggleThemeBtn');

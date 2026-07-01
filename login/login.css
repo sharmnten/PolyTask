@@ -6,25 +6,19 @@
     margin-bottom: .5rem;
 }
 
-#create-account {
+.login-options-row {
+    margin-top: 0.25rem;
+}
+
+#formError {
+    min-height: 1.25rem;
     text-align: center;
-    font-size: .9rem;
-    color: var(--muted);
-    margin-top: 1rem;
 }
 
 #togglePassword {
     position: absolute;
     right: 10px;
-    top: 35%;
+    top: 1.5rem;
     transform: translateY(-50%);
     z-index: 5;
-}
-
-.input-wrapper label {
-    top: 20%;
-}
-
-#formError {
-    text-align: center;
 }
